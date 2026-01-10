@@ -150,7 +150,7 @@
       }[m]));
     }
 
-    // ✔ CORREGIDO: antes /empleados → ahora /api/empleados
+    // Cargar empleados
     fetch("/api/empleados")
       .then(res => res.json())
       .then(data => empleados = data)
@@ -208,7 +208,6 @@
       for (let dia = 1; dia <= ultimoDia; dia++) {
         const fecha = `${año}-${String(mes + 1).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
 
-        // ✔ CORREGIDO: antes /tareas-del-dia/... → ahora /api/tareas-del-dia?id=...
         fetch(`/api/tareas-del-dia?id=${empleadoID}&fecha=${fecha}`)
           .then(res => res.json())
           .then(data => {
@@ -279,38 +278,70 @@
     function crearTarjeta(t, fecha) {
       const card = document.createElement("div");
       card.className = "tarea-card";
-      card.dataset.tarea = t.tarea;
-      card.dataset.fecha = fecha;
 
       card.innerHTML = `
-        <strong>Tarea:</strong> ${escapeHTML(t.tarea)}<br>
-        ${t.obsAdmin ? `<strong>Obs admin:</strong> ${escapeHTML(t.obsAdmin)}<br>` : ""}
-        ${t.obsEmpleado ? `<strong>Tu observación:</strong> ${escapeHTML(t.obsEmpleado)}<br>` : ""}
-        ${t.motivoNoRealizada ? `<strong>Motivo:</strong> ${escapeHTML(t.motivoNoRealizada)}<br>` : ""}
-        <br>
+        <strong>Tarea:</strong> ${escapeHTML(t.tarea)}<br><br>
 
-        <button class="btn-mini ${t.estado === 'en_proceso' ? 'proceso' : ''}"
-                onclick="alert('En Vercel no se puede cambiar estado todavía.')">
+        <button class="btn-mini"
+                onclick="cambiarEstado('${t.id}', 'en_proceso', '${fecha}')">
           En proceso
         </button>
 
         <button class="btn-mini"
-                onclick="alert('En Vercel no se puede marcar como terminada todavía.')">
+                onclick="cambiarEstado('${t.id}', 'terminada', '${fecha}')">
           Terminada
         </button>
 
         <button class="btn-mini"
-                onclick="alert('En Vercel no se puede marcar como no realizada todavía.')">
+                onclick="cambiarEstado('${t.id}', 'no_realizada', '${fecha}')">
           No realizada
         </button>
 
         <button class="btn-mini"
-                onclick="alert('En Vercel no se pueden guardar observaciones todavía.')">
+                onclick="agregarObservacion('${t.id}', '${fecha}')">
           Observación
         </button>
       `;
 
       document.getElementById("listaTareas").appendChild(card);
+    }
+
+    function cambiarEstado(tareaId, estado, fecha) {
+      fetch("/api/guardar-estado", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          empleadoId: empleadoID,
+          tareaId,
+          estado
+        })
+      })
+      .then(res => res.json())
+      .then(() => {
+        alert("Estado actualizado");
+        verDia(fecha);
+      })
+      .catch(() => alert("Error guardando estado"));
+    }
+
+    function agregarObservacion(tareaId, fecha) {
+      const obs = prompt("Escribe tu observación:");
+      if (!obs) return;
+
+      fetch("/api/guardar-observacion", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          empleadoId: empleadoID,
+          observacion: obs
+        })
+      })
+      .then(res => res.json())
+      .then(() => {
+        alert("Observación guardada");
+        verDia(fecha);
+      })
+      .catch(() => alert("Error guardando observación"));
     }
   </script>
 

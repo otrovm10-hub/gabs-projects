@@ -1,0 +1,93 @@
+{
+  "101": {
+    "2026-01-10": [
+      {
+        "id": "exc-101-01",
+        "tarea": "Limpieza profunda de cocina",
+        "estado": "pendiente",
+        "obsAdmin": "",
+        "obsEmpleado": "",
+        "motivoNoRealizada": ""
+      }
+    ],
+    "2026-01-12": [
+      {
+        "id": "exc-101-02",
+        "tarea": "Desinfección de mesas del lobby",
+        "estado": "pendiente",
+        "obsAdmin": "Revisar debajo de las mesas",
+        "obsEmpleado": "",
+        "motivoNoRealizada": ""
+      }
+    ]
+  },
+
+  "102": {
+    "2026-01-10": [
+      {
+        "id": "exc-102-01",
+        "tarea": "Desinfección de máquinas",
+        "estado": "pendiente",
+        "obsAdmin": "",
+        "obsEmpleado": "",
+        "motivoNoRealizada": ""
+      }
+    ],
+    "2026-01-11": [
+      {
+        "id": "exc-102-02",
+        "tarea": "Limpieza de filtros de aire",
+        "estado": "pendiente",
+        "obsAdmin": "Usar mascarilla",
+        "obsEmpleado": "",
+        "motivoNoRealizada": ""
+      }
+    ]
+  },
+
+  "103": {
+    "2026-01-10": [
+      {
+        "id": "exc-103-01",
+        "tarea": "Inventario mensual",
+        "estado": "pendiente",
+        "obsAdmin": "",
+        "obsEmpleado": "",
+        "motivoNoRealizada": ""
+      }
+    ],
+    "2026-01-13": [
+      {
+        "id": "exc-103-02",
+        "tarea": "Revisión de cámaras de refrigeración",
+        "estado": "pendiente",
+        "obsAdmin": "Registrar temperaturas",
+        "obsEmpleado": "",
+        "motivoNoRealizada": ""
+      }
+    ]
+  },
+
+  "104": {
+    "2026-01-10": [
+      {
+        "id": "exc-104-01",
+        "tarea": "Auditoría interna",
+        "estado": "pendiente",
+        "obsAdmin": "",
+        "obsEmpleado": "",
+        "motivoNoRealizada": ""
+      }
+    ],
+    "2026-01-14": [
+      {
+        "id": "exc-104-02",
+        "tarea": "Supervisión de limpieza general",
+        "estado": "pendiente",
+        "obsAdmin": "Verificar checklist",
+        "obsEmpleado": "",
+        "motivoNoRealizada": ""
+      }
+    ]
+  }
+}

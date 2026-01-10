@@ -87,8 +87,8 @@
     }
 
     function cargarHistorial() {
-      // ✔ CORREGIDO: antes /admin/historial → ahora /api/admin-historial
-      fetch("/api/admin-historial")
+      // ✔ CORREGIDO: ahora usa la ruta real del backend serverless
+      fetch("/api/admin/historial")
         .then(res => res.json())
         .then(data => mostrarHistorial(data))
         .catch(err => {
@@ -102,15 +102,31 @@
       const cont = document.getElementById("contenedor");
       cont.innerHTML = "";
 
-      if (!data || data.length === 0) {
+      if (!data || Object.keys(data).length === 0) {
         cont.innerHTML = "<p>No hay tareas en el historial.</p>";
         return;
       }
 
+      // El historial viene como:
+      // historial[empleadoId][fecha] = [ { tareaId, estado, ... } ]
       const porFecha = {};
-      data.forEach(t => {
-        if (!porFecha[t.fecha]) porFecha[t.fecha] = [];
-        porFecha[t.fecha].push(t);
+
+      Object.entries(data).forEach(([empleadoId, fechas]) => {
+        Object.entries(fechas).forEach(([fecha, tareas]) => {
+          if (!porFecha[fecha]) porFecha[fecha] = [];
+
+          tareas.forEach(t => {
+            porFecha[fecha].push({
+              empleadoId,
+              nombre: "Empleado " + empleadoId,
+              tarea: t.tarea || t.tareaId || "Tarea",
+              estado: t.estado || "desconocido",
+              obsEmpleado: t.obsEmpleado || "",
+              obsAdmin: t.obsAdmin || "",
+              motivoNoRealizada: t.motivoNoRealizada || ""
+            });
+          });
+        });
       });
 
       Object.keys(porFecha)
@@ -126,7 +142,7 @@
             card.className = "tarea-card";
 
             card.innerHTML = `
-              <strong>Empleado:</strong> ${escapeHTML(t.nombre)} (${escapeHTML(t.id)})<br>
+              <strong>Empleado:</strong> ${escapeHTML(t.nombre)} (${escapeHTML(t.empleadoId)})<br>
               <strong>Tarea:</strong> ${escapeHTML(t.tarea)}<br>
               <strong>Estado:</strong> ${escapeHTML(t.estado)}<br>
               ${t.obsEmpleado ? `<strong>Obs empleado:</strong> ${escapeHTML(t.obsEmpleado)}<br>` : ""}

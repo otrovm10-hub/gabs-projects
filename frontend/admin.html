@@ -185,6 +185,9 @@
     let fechaActual = new Date();
     let tareaReprogramar = null;
 
+    /* ---------------------------
+       CARGAR EMPLEADOS Y CATÁLOGO
+    ----------------------------*/
     fetch("/api/empleados")
       .then(res => res.json())
       .then(data => {
@@ -220,6 +223,9 @@
       });
     }
 
+    /* ---------------------------
+       CALENDARIO
+    ----------------------------*/
     function cargarCalendario() {
       const año = fechaActual.getFullYear();
       const mes = fechaActual.getMonth();
@@ -265,7 +271,7 @@
       for (let dia = 1; dia <= ultimoDia; dia++) {
         const fecha = `${año}-${String(mes + 1).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
 
-        fetch(`/api/admin-tareas-completas?fecha=${fecha}`)
+        fetch(`/api/admin/tareas-completas?fecha=${fecha}`)
           .then(res => res.json())
           .then(data => {
             const div = document.getElementById("info-" + fecha);
@@ -294,7 +300,7 @@
       const cont = document.getElementById("listaTareas");
       cont.innerHTML = "<p>Cargando...</p>";
 
-      fetch(`/api/admin-tareas-completas?fecha=${fecha}`)
+      fetch(`/api/admin/tareas-completas?fecha=${fecha}`)
         .then(res => res.json())
         .then(data => mostrarTareas(fecha, data));
     }
@@ -314,22 +320,16 @@
     function crearTarjeta(t, fecha) {
       const card = document.createElement("div");
       card.className = "tarea-card";
-      card.dataset.id = t.id;
-      card.dataset.fecha = fecha;
-      card.dataset.tarea = t.tarea;
-      card.dataset.tipo = t.tipo;
 
       card.innerHTML = `
-        <strong>Empleado:</strong> ${t.nombre} (${t.id})<br>
+        <strong>Empleado:</strong> ${t.nombre} (${t.empleadoId})<br>
         <strong>Tarea:</strong> ${t.tarea}<br>
         <strong>Estado:</strong> ${t.estado}<br>
         ${t.obsEmpleado ? `<strong>Obs empleado:</strong> ${t.obsEmpleado}<br>` : ""}
         ${t.obsAdmin ? `<strong>Obs admin:</strong> ${t.obsAdmin}<br>` : ""}
         ${t.motivoNoRealizada ? `<strong>Motivo:</strong> ${t.motivoNoRealizada}<br>` : ""}
         <br>
-      `;
 
-      card.innerHTML += `
         <button class="btn-mini" onclick="aprobarTarea('${t.id}', '${fecha}')">Aprobar</button>
         <button class="btn-mini" onclick="devolverTarea('${t.id}', '${fecha}')">Devolver</button>
         <button class="btn-mini" onclick="abrirPopup('${t.id}', '${fecha}')">Reprogramar</button>
@@ -339,63 +339,34 @@
       document.getElementById("listaTareas").appendChild(card);
     }
 
-    function abrirPopup(id, fecha) {
-      tareaReprogramar = { id, fecha };
-      document.getElementById("popup").style.display = "flex";
-    }
-
-    function cerrarPopup() {
-      document.getElementById("popup").style.display = "none";
-      tareaReprogramar = null;
-    }
-
-    function mesAnterior() {
-      fechaActual.setMonth(fechaActual.getMonth() - 1);
-      cargarCalendario();
-    }
-
-    function mesSiguiente() {
-      fechaActual.setMonth(fechaActual.getMonth() + 1);
-      cargarCalendario();
-    }
-
-    function nombreMes(m) {
-      return [
-        "Enero","Febrero","Marzo","Abril","Mayo","Junio",
-        "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"
-      ][m];
-    }
-
-    cargarCalendario();
-
     /* ---------------------------
        ASIGNAR TAREA
     ----------------------------*/
     async function asignarTarea() {
-      const empleado = document.getElementById("selEmpleado").value;
+      const empleadoId = document.getElementById("selEmpleado").value;
       const fecha = document.getElementById("selFecha").value;
-      const categoria = document.getElementById("selCategoria").value;
       const tarea = document.getElementById("selTarea").value;
 
-      const res = await fetch("/api/asignar-tarea", {
+      const res = await fetch("/api/admin/agregar-tarea", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ empleado_id: empleado, fecha, categoria, tarea })
+        body: JSON.stringify({ empleadoId, tarea })
       });
 
-      const data = await res.json();
-      if (data.success) verDia(fecha);
+      await res.json();
+      verDia(fecha);
     }
 
     /* ---------------------------
        APROBAR TAREA
     ----------------------------*/
     async function aprobarTarea(id, fecha) {
-      await fetch("/api/admin-aprobar", {
+      await fetch("/api/admin/aprobar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id })
+        body: JSON.stringify({ tareaId: id, fecha })
       });
+
       verDia(fecha);
     }
 
@@ -406,8 +377,13 @@
       await fetch("/api/guardar-estado", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, estado: "devuelta" })
+        body: JSON.stringify({
+          empleadoId: id,
+          tareaId: id,
+          estado: "devuelta"
+        })
       });
+
       verDia(fecha);
     }
 
@@ -421,7 +397,10 @@
       await fetch("/api/guardar-observacion-admin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, obs })
+        body: JSON.stringify({
+          empleadoId: id,
+          observacion: obs
+        })
       });
 
       verDia(fecha);
@@ -430,16 +409,27 @@
     /* ---------------------------
        REPROGRAMAR TAREA
     ----------------------------*/
+    function abrirPopup(id, fecha) {
+      tareaReprogramar = { id, fecha };
+      document.getElementById("popup").style.display = "flex";
+    }
+
+    function cerrarPopup() {
+      document.getElementById("popup").style.display = "none";
+      tareaReprogramar = null;
+    }
+
     async function confirmarReprogramacion() {
       const nuevaFecha = document.getElementById("nuevaFecha").value;
       const obs = document.getElementById("obsReprogramar").value;
 
-      await fetch("/api/admin-reprogramar", {
+      await fetch("/api/admin/reprogramar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          id: tareaReprogramar.id,
+          empleadoId: tareaReprogramar.id,
           fecha: nuevaFecha,
+          tarea: "Reprogramada",
           obs
         })
       });
@@ -447,6 +437,8 @@
       cerrarPopup();
       verDia(tareaReprogramar.fecha);
     }
+
+    cargarCalendario();
   </script>
 
   <script>
