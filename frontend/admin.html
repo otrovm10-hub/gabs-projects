@@ -224,6 +224,27 @@
     }
 
     /* ---------------------------
+       FUNCIONES FALTANTES
+    ----------------------------*/
+    function nombreMes(m) {
+      const meses = [
+        "Enero","Febrero","Marzo","Abril","Mayo","Junio",
+        "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"
+      ];
+      return meses[m];
+    }
+
+    function mesAnterior() {
+      fechaActual.setMonth(fechaActual.getMonth() - 1);
+      cargarCalendario();
+    }
+
+    function mesSiguiente() {
+      fechaActual.setMonth(fechaActual.getMonth() + 1);
+      cargarCalendario();
+    }
+
+    /* ---------------------------
        CALENDARIO
     ----------------------------*/
     function cargarCalendario() {
