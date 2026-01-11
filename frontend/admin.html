@@ -180,6 +180,8 @@
   </div>
 
   <script>
+    const API = "https://gabs-backend.onrender.com";
+
     let empleados = {};
     let catalogo = {};
     let fechaActual = new Date();
@@ -188,7 +190,7 @@
     /* ---------------------------
        CARGAR EMPLEADOS Y CATÁLOGO
     ----------------------------*/
-    fetch("/api/empleados")
+    fetch(`${API}/api/empleados`)
       .then(res => res.json())
       .then(data => {
         empleados = data;
@@ -198,7 +200,7 @@
         });
       });
 
-    fetch("/api/catalogo")
+    fetch(`${API}/api/catalogo`)
       .then(res => res.json())
       .then(data => {
         catalogo = data;
@@ -292,7 +294,7 @@
       for (let dia = 1; dia <= ultimoDia; dia++) {
         const fecha = `${año}-${String(mes + 1).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
 
-        fetch(`/api/admin/tareas-completas?fecha=${fecha}`)
+        fetch(`${API}/api/admin/tareas-completas?fecha=${fecha}`)
           .then(res => res.json())
           .then(data => {
             const div = document.getElementById("info-" + fecha);
@@ -321,7 +323,7 @@
       const cont = document.getElementById("listaTareas");
       cont.innerHTML = "<p>Cargando...</p>";
 
-      fetch(`/api/admin/tareas-completas?fecha=${fecha}`)
+      fetch(`${API}/api/admin/tareas-completas?fecha=${fecha}`)
         .then(res => res.json())
         .then(data => mostrarTareas(fecha, data));
     }
@@ -368,7 +370,7 @@
       const fecha = document.getElementById("selFecha").value;
       const tarea = document.getElementById("selTarea").value;
 
-      const res = await fetch("/api/admin/agregar-tarea", {
+      const res = await fetch(`${API}/api/admin/agregar-tarea`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ empleadoId, tarea })
@@ -382,7 +384,7 @@
        APROBAR TAREA
     ----------------------------*/
     async function aprobarTarea(id, fecha) {
-      await fetch("/api/admin/aprobar", {
+      await fetch(`${API}/api/admin/aprobar`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ tareaId: id, fecha })
@@ -395,7 +397,7 @@
        DEVOLVER TAREA
     ----------------------------*/
     async function devolverTarea(id, fecha) {
-      await fetch("/api/guardar-estado", {
+      await fetch(`${API}/api/guardar-estado`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -415,7 +417,7 @@
       const obs = prompt("Observación del admin:");
       if (!obs) return;
 
-      await fetch("/api/guardar-observacion-admin", {
+      await fetch(`${API}/api/guardar-observacion-admin`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -444,7 +446,7 @@
       const nuevaFecha = document.getElementById("nuevaFecha").value;
       const obs = document.getElementById("obsReprogramar").value;
 
-      await fetch("/api/admin/reprogramar", {
+      await fetch(`${API}/api/admin/reprogramar`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

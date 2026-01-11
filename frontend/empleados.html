@@ -135,6 +135,8 @@
   </div>
 
   <script>
+    const API = "https://gabs-backend.onrender.com";
+
     let empleados = {};
     let empleadoID = null;
     let fechaActual = new Date();
@@ -151,7 +153,7 @@
     }
 
     // Cargar empleados
-    fetch("/api/empleados")
+    fetch(`${API}/api/empleados`)
       .then(res => res.json())
       .then(data => empleados = data)
       .catch(() => alert("Error cargando empleados"));
@@ -208,7 +210,7 @@
       for (let dia = 1; dia <= ultimoDia; dia++) {
         const fecha = `${año}-${String(mes + 1).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
 
-        fetch(`/api/tareas-del-dia?id=${empleadoID}&fecha=${fecha}`)
+        fetch(`${API}/api/tareas-del-dia?id=${empleadoID}&fecha=${fecha}`)
           .then(res => res.json())
           .then(data => {
             const tareas = data.tareas || [];
@@ -255,7 +257,7 @@
     }
 
     function verDia(fecha) {
-      fetch(`/api/tareas-del-dia?id=${empleadoID}&fecha=${fecha}`)
+      fetch(`${API}/api/tareas-del-dia?id=${empleadoID}&fecha=${fecha}`)
         .then(res => res.json())
         .then(data => mostrarTareas(fecha, data.tareas || []))
         .catch(() => alert("Error cargando tareas"));
@@ -307,7 +309,7 @@
     }
 
     function cambiarEstado(tareaId, estado, fecha) {
-      fetch("/api/guardar-estado", {
+      fetch(`${API}/api/guardar-estado`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -328,7 +330,7 @@
       const obs = prompt("Escribe tu observación:");
       if (!obs) return;
 
-      fetch("/api/guardar-observacion", {
+      fetch(`${API}/api/guardar-observacion`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

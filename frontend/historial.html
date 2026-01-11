@@ -75,6 +75,8 @@
   </div>
 
   <script>
+    const API = "https://gabs-backend.onrender.com";
+
     function escapeHTML(str) {
       if (!str) return "";
       return str.replace(/[&<>"']/g, m => ({
@@ -87,8 +89,7 @@
     }
 
     function cargarHistorial() {
-      // ✔ CORREGIDO: ahora usa la ruta real del backend serverless
-      fetch("/api/admin/historial")
+      fetch(`${API}/api/admin/historial`)
         .then(res => res.json())
         .then(data => mostrarHistorial(data))
         .catch(err => {
@@ -107,8 +108,6 @@
         return;
       }
 
-      // El historial viene como:
-      // historial[empleadoId][fecha] = [ { tareaId, estado, ... } ]
       const porFecha = {};
 
       Object.entries(data).forEach(([empleadoId, fechas]) => {
