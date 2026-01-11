@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Panel del Empleado</title>
+
+  <link rel="manifest" href="/manifest.json">
+
+  <style>
+    body {
+      background-color: #1e1e1e;
+      color: #ffffff;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      text-align: center;
+    }
+
+    h1, h2, h3 {
+      color: #ffc300;
+    }
+
+    #login, #panel {
+      max-width: 900px;
+      margin: 20px auto;
+      background: #2a2a2a;
+      padding: 20px;
+      border-radius: 10px;
+      border-left: 5px solid #c1121f;
+    }
+
+    input, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      border-radius: 5px;
+      border: 2px solid #c1121f;
+      background: #1e1e1e;
+      color: #ffffff;
+      font-size: 16px;
+    }
+
+    button {
+      background: #ffc300;
+      color: #1e1e1e;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    button:hover {
+      background: #c1121f;
+      color: #ffffff;
+    }
+
+    .cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 8px;
+    }
+
+    .cal-dia {
+      background: #2a2a2a;
+      padding: 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      border-left: 4px solid #c1121f;
+      min-height: 80px;
+    }
+
+    .cal-dia:hover {
+      background: #3a3a3a;
+    }
+
+    .tarea-card {
+      background: #2a2a2a;
+      padding: 15px;
+      margin: 15px 0;
+      border-radius: 8px;
+      border-left: 5px solid #ffc300;
+      text-align: left;
+    }
+
+    .btn-mini {
+      width: auto;
+      padding: 6px 10px;
+      margin-right: 5px;
+      margin-top: 5px;
+      font-size: 14px;
+      background: #ffc300;
+      color: #1e1e1e;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .btn-mini:hover {
+      background: #c1121f;
+      color: #ffffff;
+    }
+
+    .proceso {
+      background: #ffc300 !important;
+      color: #1e1e1e !important;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>Panel del Empleado</h1>
+
+  <div id="login">
+    <h3>Ingrese su ID</h3>
+    <input type="number" id="idEmpleado" placeholder="Ej: 101">
+    <button onclick="entrar()">Entrar</button>
+  </div>
+
+  <div id="panel" style="display:none;">
+    <h2 id="nombreEmpleado"></h2>
+
+    <h3>Calendario de tareas</h3>
+
+    <div>
+      <button onclick="mesAnterior()">← Mes anterior</button>
+      <button onclick="mesSiguiente()">Mes siguiente →</button>
+    </div>
+
+    <h3 id="tituloMes"></h3>
+
+    <div id="calendario"></div>
+
+    <h3 id="tituloDia"></h3>
+    <div id="listaTareas"></div>
+  </div>
+
+  <script>
+    const API = "https://gabs-backend-vm.onrender.com";
+
+    let empleados = {};
+    let empleadoID = null;
+    let fechaActual = new Date();
+
+    function escapeHTML(str) {
+      if (!str) return "";
+      return str.replace(/[&<>"']/g, m => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+      }[m]));
+    }
+
+    // Cargar empleados
+    fetch(`${API}/api/empleados`)
+      .then(res => res.json())
+      .then(data => empleados = data)
+      .catch(() => alert("Error cargando empleados"));
+
+    function entrar() {
+      empleadoID = document.getElementById("idEmpleado").value.trim();
+      if (!empleadoID) return alert("Ingrese un ID válido");
+
+      const nombre = empleados[empleadoID];
+      if (!nombre) return alert("Empleado no encontrado");
+
+      document.getElementById("login").style.display = "none";
+      document.getElementById("panel").style.display = "block";
+      document.getElementById("nombreEmpleado").textContent = "Hola " + escapeHTML(nombre);
+
+      cargarCalendario();
+    }
+
+    function cargarCalendario() {
+      const año = fechaActual.getFullYear();
+      const mes = fechaActual.getMonth();
+
+      document.getElementById("tituloMes").textContent =
+        nombreMes(mes) + " " + año;
+
+      const primerDia = new Date(año, mes, 1);
+      const ultimoDia = new Date(año, mes + 1, 0);
+
+      const cont = document.getElementById("calendario");
+      cont.innerHTML = `<div class="cal-grid"></div>`;
+      const grid = cont.querySelector(".cal-grid");
+
+      for (let i = 0; i < primerDia.getDay(); i++) {
+        grid.innerHTML += `<div></div>`;
+      }
+
+      for (let dia = 1; dia <= ultimoDia.getDate(); dia++) {
+        const fecha = `${año}-${String(mes + 1).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
+
+        grid.innerHTML += `
+          <div class="cal-dia" onclick="verDia('${fecha}')">
+            <strong>${dia}</strong><br>
+            <div id="info-${fecha}">Cargando...</div>
+          </div>
+        `;
+      }
+
+      cargarResumenMes(año, mes);
+    }
+
+    function cargarResumenMes(año, mes) {
+      const ultimoDia = new Date(año, mes + 1, 0).getDate();
+
+      for (let dia = 1; dia <= ultimoDia; dia++) {
+        const fecha = `${año}-${String(mes + 1).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
+
+        fetch(`${API}/api/tareas-del-dia?id=${empleadoID}&fecha=${fecha}`)
+          .then(res => res.json())
+          .then(data => {
+            const tareas = data.tareas || [];
+            const div = document.getElementById("info-" + fecha);
+
+            if (!div) return;
+
+            if (tareas.length === 0) {
+              div.textContent = "0 tareas";
+              return;
+            }
+
+            const colores = tareas.map(t => {
+              if (t.estado === "terminada") return "🟢";
+              if (t.estado === "en_proceso") return "🟡";
+              if (t.estado === "no_realizada") return "🔴";
+              return "⚪";
+            }).join("");
+
+            div.innerHTML = `${tareas.length} tareas<br>${colores}`;
+          })
+          .catch(() => {
+            const div = document.getElementById("info-" + fecha);
+            if (div) div.textContent = "Error";
+          });
+      }
+    }
+
+    function mesAnterior() {
+      fechaActual.setMonth(fechaActual.getMonth() - 1);
+      cargarCalendario();
+    }
+
+    function mesSiguiente() {
+      fechaActual.setMonth(fechaActual.getMonth() + 1);
+      cargarCalendario();
+    }
+
+    function nombreMes(m) {
+      return [
+        "Enero","Febrero","Marzo","Abril","Mayo","Junio",
+        "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"
+      ][m];
+    }
+
+    function verDia(fecha) {
+      fetch(`${API}/api/tareas-del-dia?id=${empleadoID}&fecha=${fecha}`)
+        .then(res => res.json())
+        .then(data => mostrarTareas(fecha, data.tareas || []))
+        .catch(() => alert("Error cargando tareas"));
+    }
+
+    function mostrarTareas(fecha, tareas) {
+      document.getElementById("tituloDia").textContent = "Tareas del " + fecha;
+
+      const cont = document.getElementById("listaTareas");
+      cont.innerHTML = "";
+
+      if (tareas.length === 0) {
+        cont.innerHTML = "<p>No tienes tareas este día.</p>";
+        return;
+      }
+
+      tareas.forEach(t => crearTarjeta(t, fecha));
+    }
+
+    function crearTarjeta(t, fecha) {
+      const card = document.createElement("div");
+      card.className = "tarea-card";
+
+      card.innerHTML = `
+        <strong>Tarea:</strong> ${escapeHTML(t.tarea)}<br><br>
+
+        <button class="btn-mini"
+                onclick="cambiarEstado('${t.id}', 'en_proceso', '${fecha}')">
+          En proceso
+        </button>
+
+        <button class="btn-mini"
+                onclick="cambiarEstado('${t.id}', 'terminada', '${fecha}')">
+          Terminada
+        </button>
+
+        <button class="btn-mini"
+                onclick="cambiarEstado('${t.id}', 'no_realizada', '${fecha}')">
+          No realizada
+        </button>
+
+        <button class="btn-mini"
+                onclick="agregarObservacion('${t.id}', '${fecha}')">
+          Observación
+        </button>
+      `;
+
+      document.getElementById("listaTareas").appendChild(card);
+    }
+
+    function cambiarEstado(tareaId, estado, fecha) {
+      fetch(`${API}/api/guardar-estado`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          empleadoId: empleadoID,
+          tareaId,
+          estado
+        })
+      })
+      .then(res => res.json())
+      .then(() => {
+        alert("Estado actualizado");
+        verDia(fecha);
+      })
+      .catch(() => alert("Error guardando estado"));
+    }
+
+    function agregarObservacion(tareaId, fecha) {
+      const obs = prompt("Escribe tu observación:");
+      if (!obs) return;
+
+      fetch(`${API}/api/guardar-observacion`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          empleadoId: empleadoID,
+          observacion: obs
+        })
+      })
+      .then(res => res.json())
+      .then(() => {
+        alert("Observación guardada");
+        verDia(fecha);
+      })
+      .catch(() => alert("Error guardando observación"));
+    }
+  </script>
+
+  <script>
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/service-worker.js");
+    }
+  </script>
+
+</body>
+</html>
