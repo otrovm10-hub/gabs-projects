@@ -90,18 +90,12 @@
   </div>
 
   <script>
-    /* ============================================================
-       CARGAR HISTORIAL DESDE RENDER
-    ============================================================ */
     async function cargarHistorial() {
       return fetch("https://gabs-backend-ultima.onrender.com/admin/historial")
         .then(res => res.json())
         .catch(() => []);
     }
 
-    /* ============================================================
-       VISTA POR DÍA
-    ============================================================ */
     async function verPorFecha() {
       const fecha = document.getElementById("fechaSeleccionada").value;
       if (!fecha) return alert("Seleccione una fecha");
@@ -115,9 +109,6 @@
       mostrarTareas(tareas);
     }
 
-    /* ============================================================
-       VISTA POR SEMANA
-    ============================================================ */
     async function verSemana() {
       const fechaBase = document.getElementById("fechaSeleccionada").value;
       if (!fechaBase) return alert("Seleccione una fecha");
@@ -149,9 +140,6 @@
       }
     }
 
-    /* ============================================================
-       VISTA POR MES
-    ============================================================ */
     async function verMes() {
       const fechaBase = document.getElementById("fechaSeleccionada").value;
       if (!fechaBase) return alert("Seleccione una fecha");
@@ -193,9 +181,6 @@
       ][m];
     }
 
-    /* ============================================================
-       MOSTRAR TAREAS
-    ============================================================ */
     function mostrarTareas(lista) {
       const cont = document.getElementById("listaHistorial");
       cont.innerHTML = "";
@@ -208,9 +193,6 @@
       lista.forEach(t => crearTarjeta(t));
     }
 
-    /* ============================================================
-       TARJETA INDIVIDUAL
-    ============================================================ */
     function crearTarjeta(t) {
       let estadoTexto = t.estado === "terminada" ? "🟢 Terminada" : "🔴 No realizada";
       let claseEstado = t.estado === "terminada" ? "estado-terminada" : "estado-no_realizada";

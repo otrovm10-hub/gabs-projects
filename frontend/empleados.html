@@ -147,7 +147,6 @@
       }[m]));
     }
 
-    // Cargar empleados
     fetch(`${API}/empleados`)
       .then(res => res.json())
       .then(data => empleados = data)
@@ -157,12 +156,12 @@
       empleadoID = document.getElementById("idEmpleado").value.trim();
       if (!empleadoID) return alert("Ingrese un ID válido");
 
-      const nombre = empleados[empleadoID];
-      if (!nombre) return alert("Empleado no encontrado");
+      const info = empleados[empleadoID];
+      if (!info) return alert("Empleado no encontrado");
 
       document.getElementById("login").style.display = "none";
       document.getElementById("panel").style.display = "block";
-      document.getElementById("nombreEmpleado").textContent = "Hola " + escapeHTML(nombre);
+      document.getElementById("nombreEmpleado").textContent = "Hola " + escapeHTML(info.nombre);
 
       cargarCalendario();
     }

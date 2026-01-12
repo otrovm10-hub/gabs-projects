@@ -195,8 +195,9 @@
       .then(data => {
         empleados = data;
         const sel = document.getElementById("selEmpleado");
-        Object.entries(data).forEach(([id, nombre]) => {
-          sel.innerHTML += `<option value="${id}">${nombre} (${id})</option>`;
+
+        Object.entries(data).forEach(([id, info]) => {
+          sel.innerHTML += `<option value="${id}">${info.nombre} (${id})</option>`;
         });
       });
 
@@ -446,6 +447,21 @@
 
       cerrarPopup();
       verDia(tareaReprogramar.fecha);
+    }
+
+    function nombreMes(m) {
+      return ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio",
+              "Agosto","Septiembre","Octubre","Noviembre","Diciembre"][m];
+    }
+
+    function mesAnterior() {
+      fechaActual.setMonth(fechaActual.getMonth() - 1);
+      cargarCalendario();
+    }
+
+    function mesSiguiente() {
+      fechaActual.setMonth(fechaActual.getMonth() + 1);
+      cargarCalendario();
     }
 
     cargarCalendario();
