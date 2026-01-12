@@ -4,8 +4,6 @@
   <meta charset="UTF-8">
   <title>Historial de Tareas</title>
 
-  <link rel="manifest" href="/manifest.json">
-
   <style>
     body {
       background-color: #1e1e1e;
@@ -16,7 +14,7 @@
       text-align: center;
     }
 
-    h1, h2 {
+    h1, h2, h3 {
       color: #ffc300;
     }
 
@@ -27,30 +25,20 @@
       padding: 20px;
       border-radius: 10px;
       border-left: 5px solid #c1121f;
-      text-align: left;
     }
 
-    .fecha-bloque {
-      margin-bottom: 30px;
-      padding: 15px;
-      background: #1e1e1e;
-      border-radius: 10px;
-      border-left: 5px solid #ffc300;
-    }
-
-    .tarea-card {
-      background: #2a2a2a;
-      padding: 15px;
-      margin: 10px 0;
-      border-radius: 8px;
-      border-left: 5px solid #c1121f;
-    }
-
-    button {
+    input, button {
+      width: 100%;
       padding: 10px;
       margin-top: 10px;
       border-radius: 5px;
       border: 2px solid #c1121f;
+      background: #1e1e1e;
+      color: #ffffff;
+      font-size: 16px;
+    }
+
+    button {
       background: #ffc300;
       color: #1e1e1e;
       cursor: pointer;
@@ -61,97 +49,188 @@
       background: #c1121f;
       color: #ffffff;
     }
+
+    .tarea-card {
+      background: #2a2a2a;
+      padding: 15px;
+      margin: 15px 0;
+      border-radius: 8px;
+      border-left: 5px solid #ffc300;
+      text-align: left;
+    }
+
+    .estado {
+      font-weight: bold;
+      margin-top: 5px;
+    }
+
+    .estado-terminada { color: #00ff88; }
+    .estado-no_realizada { color: #ff4b4b; }
+
   </style>
 </head>
 
 <body>
 
-  <h1>Historial de Tareas Aprobadas</h1>
-
-  <button onclick="window.location.href='admin.html'">⬅ Volver al panel</button>
+  <h1>Historial de Tareas</h1>
 
   <div id="contenedor">
-    <p>Cargando historial...</p>
+
+    <h3>Seleccione una fecha</h3>
+    <input type="date" id="fechaSeleccionada">
+
+    <button onclick="verPorFecha()">Ver por día</button>
+    <button onclick="verSemana()">Ver semana</button>
+    <button onclick="verMes()">Ver mes</button>
+
+    <h2 id="titulo"></h2>
+
+    <div id="listaHistorial"></div>
+
   </div>
 
   <script>
-    const API = "https://gabs-backend-ultima.onrender.com";
-
-    function escapeHTML(str) {
-      if (!str) return "";
-      return str.replace(/[&<>"']/g, m => ({
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#39;"
-      }[m]));
-    }
-
-    function cargarHistorial() {
-      fetch(`${API}/admin/historial`)
+    /* ============================================================
+       CARGAR HISTORIAL DESDE RENDER
+    ============================================================ */
+    async function cargarHistorial() {
+      return fetch("https://gabs-backend-ultima.onrender.com/admin/historial")
         .then(res => res.json())
-        .then(data => mostrarHistorial(data))
-        .catch(err => {
-          document.getElementById("contenedor").innerHTML =
-            "<p>Error al cargar el historial.</p>";
-          console.error("Error:", err);
-        });
+        .catch(() => []);
     }
 
-    function mostrarHistorial(data) {
-      const cont = document.getElementById("contenedor");
+    /* ============================================================
+       VISTA POR DÍA
+    ============================================================ */
+    async function verPorFecha() {
+      const fecha = document.getElementById("fechaSeleccionada").value;
+      if (!fecha) return alert("Seleccione una fecha");
+
+      const historial = await cargarHistorial();
+
+      document.getElementById("titulo").textContent = "Historial del " + fecha;
+
+      const tareas = historial.filter(t => t.fecha === fecha);
+
+      mostrarTareas(tareas);
+    }
+
+    /* ============================================================
+       VISTA POR SEMANA
+    ============================================================ */
+    async function verSemana() {
+      const fechaBase = document.getElementById("fechaSeleccionada").value;
+      if (!fechaBase) return alert("Seleccione una fecha");
+
+      const historial = await cargarHistorial();
+      const cont = document.getElementById("listaHistorial");
       cont.innerHTML = "";
 
-      if (!data || data.length === 0) {
-        cont.innerHTML = "<p>No hay tareas en el historial.</p>";
+      document.getElementById("titulo").textContent = "Historial de la semana";
+
+      const base = new Date(fechaBase);
+
+      for (let i = 0; i < 7; i++) {
+        const f = new Date(base);
+        f.setDate(base.getDate() + i);
+        const fecha = f.toISOString().split("T")[0];
+
+        const titulo = document.createElement("h3");
+        titulo.textContent = "📅 " + fecha;
+        cont.appendChild(titulo);
+
+        const tareas = historial.filter(t => t.fecha === fecha);
+
+        if (tareas.length === 0) {
+          cont.innerHTML += "<p>No hay tareas</p>";
+        } else {
+          tareas.forEach(t => crearTarjeta(t));
+        }
+      }
+    }
+
+    /* ============================================================
+       VISTA POR MES
+    ============================================================ */
+    async function verMes() {
+      const fechaBase = document.getElementById("fechaSeleccionada").value;
+      if (!fechaBase) return alert("Seleccione una fecha");
+
+      const historial = await cargarHistorial();
+      const cont = document.getElementById("listaHistorial");
+      cont.innerHTML = "";
+
+      const base = new Date(fechaBase);
+      const año = base.getFullYear();
+      const mes = base.getMonth();
+
+      document.getElementById("titulo").textContent =
+        "Historial de " + nombreMes(mes) + " " + año;
+
+      const ultimoDia = new Date(año, mes + 1, 0).getDate();
+
+      for (let dia = 1; dia <= ultimoDia; dia++) {
+        const fecha = `${año}-${String(mes + 1).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
+
+        const titulo = document.createElement("h3");
+        titulo.textContent = "📅 " + fecha;
+        cont.appendChild(titulo);
+
+        const tareas = historial.filter(t => t.fecha === fecha);
+
+        if (tareas.length === 0) {
+          cont.innerHTML += "<p>No hay tareas</p>";
+        } else {
+          tareas.forEach(t => crearTarjeta(t));
+        }
+      }
+    }
+
+    function nombreMes(m) {
+      return [
+        "Enero","Febrero","Marzo","Abril","Mayo","Junio",
+        "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"
+      ][m];
+    }
+
+    /* ============================================================
+       MOSTRAR TAREAS
+    ============================================================ */
+    function mostrarTareas(lista) {
+      const cont = document.getElementById("listaHistorial");
+      cont.innerHTML = "";
+
+      if (lista.length === 0) {
+        cont.innerHTML = "<p>No hay tareas registradas.</p>";
         return;
       }
 
-      // Agrupar por fecha
-      const porFecha = {};
-
-      data.forEach(t => {
-        if (!porFecha[t.fecha]) porFecha[t.fecha] = [];
-        porFecha[t.fecha].push(t);
-      });
-
-      // Ordenar fechas descendente
-      Object.keys(porFecha)
-        .sort((a, b) => new Date(b) - new Date(a))
-        .forEach(fecha => {
-          const bloque = document.createElement("div");
-          bloque.className = "fecha-bloque";
-
-          bloque.innerHTML = `<h2>${fecha}</h2>`;
-
-          porFecha[fecha].forEach(t => {
-            const card = document.createElement("div");
-            card.className = "tarea-card";
-
-            card.innerHTML = `
-              <strong>Empleado:</strong> ${escapeHTML(t.nombre)} (${escapeHTML(t.id)})<br>
-              <strong>Tarea:</strong> ${escapeHTML(t.tarea)}<br>
-              <strong>Estado:</strong> ${escapeHTML(t.estado)}<br>
-              ${t.obsEmpleado ? `<strong>Obs empleado:</strong> ${escapeHTML(t.obsEmpleado)}<br>` : ""}
-              ${t.obsAdmin ? `<strong>Obs admin:</strong> ${escapeHTML(t.obsAdmin)}<br>` : ""}
-              ${t.motivoNoRealizada ? `<strong>Motivo no realizada:</strong> ${escapeHTML(t.motivoNoRealizada)}<br>` : ""}
-            `;
-
-            bloque.appendChild(card);
-          });
-
-          cont.appendChild(bloque);
-        });
+      lista.forEach(t => crearTarjeta(t));
     }
 
-    cargarHistorial();
-  </script>
+    /* ============================================================
+       TARJETA INDIVIDUAL
+    ============================================================ */
+    function crearTarjeta(t) {
+      let estadoTexto = t.estado === "terminada" ? "🟢 Terminada" : "🔴 No realizada";
+      let claseEstado = t.estado === "terminada" ? "estado-terminada" : "estado-no_realizada";
 
-  <script>
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/service-worker.js");
+      const card = document.createElement("div");
+      card.className = "tarea-card";
+
+      card.innerHTML = `
+        <strong>Empleado:</strong> ${t.nombre} (${t.id})<br>
+        <strong>Fecha:</strong> ${t.fecha}<br>
+        <strong>Tarea:</strong> ${t.tarea}<br>
+        <div class="estado ${claseEstado}">Estado: ${estadoTexto}</div>
+        ${t.obsAdmin ? `<div><strong>Obs. admin:</strong> ${t.obsAdmin}</div>` : ""}
+        ${t.obsEmpleado ? `<div><strong>Obs. empleado:</strong> ${t.obsEmpleado}</div>` : ""}
+        ${t.motivoNoRealizada ? `<div><strong>Motivo:</strong> ${t.motivoNoRealizada}</div>` : ""}
+      `;
+
+      document.getElementById("listaHistorial").appendChild(card);
     }
+
   </script>
 
 </body>
