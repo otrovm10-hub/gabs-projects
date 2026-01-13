@@ -257,18 +257,23 @@
         .catch(() => alert("Error cargando tareas"));
     }
 
+    /* ⭐⭐⭐ CORREGIDO: EL EMPLEADO YA NO VE TAREAS TERMINADAS O NO REALIZADAS ⭐⭐⭐ */
     function mostrarTareas(fecha, tareas) {
       document.getElementById("tituloDia").textContent = "Tareas del " + fecha;
 
       const cont = document.getElementById("listaTareas");
       cont.innerHTML = "";
 
-      if (tareas.length === 0) {
+      const visibles = tareas.filter(t =>
+        t.estado === "pendiente" || t.estado === "en_proceso"
+      );
+
+      if (visibles.length === 0) {
         cont.innerHTML = "<p>No tienes tareas este día.</p>";
         return;
       }
 
-      tareas.forEach(t => crearTarjeta(t, fecha));
+      visibles.forEach(t => crearTarjeta(t, fecha));
     }
 
     function crearTarjeta(t, fecha) {

@@ -268,6 +268,7 @@
       verDia(fecha);
     }
 
+    /* ⭐⭐⭐ CORREGIDO: EL ADMIN YA NO VE TAREAS TERMINADAS ⭐⭐⭐ */
     function cargarResumenMes(año, mes) {
       const ultimoDia = new Date(año, mes + 1, 0).getDate();
 
@@ -277,22 +278,26 @@
         fetch(`${API}/admin/tareas-completas?fecha=${fecha}`)
           .then(res => res.json())
           .then(data => {
+
+            const visibles = data.filter(t =>
+              t.estado !== "terminada"
+            );
+
             const div = document.getElementById("info-" + fecha);
             if (!div) return;
 
-            if (data.length === 0) {
+            if (visibles.length === 0) {
               div.innerHTML = "0 tareas";
               return;
             }
 
-            let colores = data.map(t => {
-              if (t.estado === "terminada") return "🟢";
+            let colores = visibles.map(t => {
               if (t.estado === "en_proceso") return "🟡";
               if (t.estado === "no_realizada") return "🔴";
               return "⚪";
             }).join("");
 
-            div.innerHTML = `${data.length} tareas<br>${colores}`;
+            div.innerHTML = `${visibles.length} tareas<br>${colores}`;
           });
       }
     }
@@ -308,16 +313,21 @@
         .then(data => mostrarTareas(fecha, data));
     }
 
+    /* ⭐⭐⭐ CORREGIDO: EL ADMIN YA NO VE TAREAS TERMINADAS ⭐⭐⭐ */
     function mostrarTareas(fecha, tareas) {
       const cont = document.getElementById("listaTareas");
       cont.innerHTML = "";
 
-      if (tareas.length === 0) {
+      const visibles = tareas.filter(t =>
+        t.estado !== "terminada"
+      );
+
+      if (visibles.length === 0) {
         cont.innerHTML = "<p>No hay tareas este día.</p>";
         return;
       }
 
-      tareas.forEach(t => crearTarjeta(t, fecha));
+      visibles.forEach(t => crearTarjeta(t, fecha));
     }
 
     function crearTarjeta(t, fecha) {
