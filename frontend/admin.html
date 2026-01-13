@@ -196,8 +196,8 @@
         empleados = data;
         const sel = document.getElementById("selEmpleado");
 
-        Object.entries(data).forEach(([id, info]) => {
-          sel.innerHTML += `<option value="${id}">${info.nombre} (${id})</option>`;
+        Object.entries(data).forEach(([id, nombre]) => {
+          sel.innerHTML += `<option value="${id}">${nombre} (${id})</option>`;
         });
       });
 
@@ -325,7 +325,7 @@
       card.className = "tarea-card";
 
       card.innerHTML = `
-        <strong>Empleado:</strong> ${t.nombre} (${t.id})<br>
+        <strong>Empleado:</strong> ${empleados[t.id]} (${t.id})<br>
         <strong>Tarea:</strong> ${t.tarea}<br>
         <strong>Estado:</strong> ${t.estado}<br>
         ${t.obsEmpleado ? `<strong>Obs empleado:</strong> ${t.obsEmpleado}<br>` : ""}
