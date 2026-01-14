@@ -257,7 +257,6 @@
         .catch(() => alert("Error cargando tareas"));
     }
 
-    /* ⭐⭐⭐ CORREGIDO: EL EMPLEADO YA NO VE TAREAS TERMINADAS O NO REALIZADAS ⭐⭐⭐ */
     function mostrarTareas(fecha, tareas) {
       document.getElementById("tituloDia").textContent = "Tareas del " + fecha;
 
@@ -276,6 +275,7 @@
       visibles.forEach(t => crearTarjeta(t, fecha));
     }
 
+    /* ⭐⭐⭐ TARJETA CORREGIDA: AHORA MUESTRA OBSERVACIÓN DEL ADMIN ⭐⭐⭐ */
     function crearTarjeta(t, fecha) {
       const card = document.createElement("div");
       card.className = "tarea-card";
@@ -303,6 +303,20 @@
           Observación
         </button>
       `;
+
+      // ⭐ Observación del empleado
+      if (t.obsEmpleado) {
+        card.innerHTML += `
+          <p><strong>Tu observación:</strong> ${escapeHTML(t.obsEmpleado)}</p>
+        `;
+      }
+
+      // ⭐ Observación del administrador
+      if (t.obsAdmin) {
+        card.innerHTML += `
+          <p><strong>Observación del administrador:</strong> ${escapeHTML(t.obsAdmin)}</p>
+        `;
+      }
 
       document.getElementById("listaTareas").appendChild(card);
     }
