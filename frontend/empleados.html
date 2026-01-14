@@ -111,13 +111,15 @@
 
   <h1>Panel del Empleado</h1>
 
+  <!-- LOGIN -->
   <div id="login">
     <h3>Ingrese sus credenciales</h3>
-    <input type="text" id="usuario" placeholder="Usuario (ej: jimmy)">
-    <input type="password" id="clave" placeholder="Clave (ej: 1234)">
+    <input type="text" id="usuario" placeholder="Usuario">
+    <input type="password" id="clave" placeholder="Clave">
     <button onclick="login()">Entrar</button>
   </div>
 
+  <!-- PANEL -->
   <div id="panel" style="display:none;">
     <h2 id="nombreEmpleado"></h2>
     <div id="bienvenida"></div>
@@ -157,6 +159,9 @@
       }[m]));
     }
 
+    /* ---------------------------
+       LOGIN
+    ----------------------------*/
     function login() {
       const usuario = document.getElementById("usuario").value.trim();
       const clave = document.getElementById("clave").value.trim();
@@ -174,7 +179,7 @@
       .then(res => res.json())
       .then(data => {
         if (!data.ok) {
-          alert(data.mensaje || "Credenciales incorrectas");
+          alert("Credenciales incorrectas");
           return;
         }
 
@@ -188,13 +193,15 @@
           "Hola, " + escapeHTML(nombreEmpleado);
 
         document.getElementById("bienvenida").textContent =
-          "Bienvenido a tu panel de tareas. Aquí verás tus actividades, estados y observaciones en tiempo real.";
+          "Bienvenido a tu panel de tareas. Aquí verás tus actividades en tiempo real.";
 
         cargarCalendario();
-      })
-      .catch(() => alert("Error en el login"));
+      });
     }
 
+    /* ---------------------------
+       CALENDARIO
+    ----------------------------*/
     function cargarCalendario() {
       const año = fechaActual.getFullYear();
       const mes = fechaActual.getMonth();
@@ -247,19 +254,13 @@
             }
 
             const colores = tareas.map(t => {
-              if (t.estado === "terminada") return "🟢";
               if (t.estado === "en_proceso") return "🟡";
-              if (t.estado === "no_realizada") return "🔴";
               if (t.estado === "en_revision") return "🔵";
               if (t.estado === "devuelto") return "🟠";
               return "⚪";
             }).join("");
 
             div.innerHTML = `${tareas.length} tareas<br>${colores}`;
-          })
-          .catch(() => {
-            const div = document.getElementById("info-" + fecha);
-            if (div) div.textContent = "Error";
           });
       }
     }
@@ -281,14 +282,14 @@
       ][m];
     }
 
+    /* ---------------------------
+       VER TAREAS DEL DÍA
+    ----------------------------*/
     function verDia(fecha) {
       fechaSeleccionada = fecha;
       cargarTareasDelDia();
 
-      if (intervaloRefresco) {
-        clearInterval(intervaloRefresco);
-      }
-
+      if (intervaloRefresco) clearInterval(intervaloRefresco);
       intervaloRefresco = setInterval(cargarTareasDelDia, 5000);
     }
 
@@ -297,10 +298,12 @@
 
       fetch(`${API}/tareas-del-dia/${empleadoID}?fecha=${fechaSeleccionada}`)
         .then(res => res.json())
-        .then(data => mostrarTareas(fechaSeleccionada, data.tareas || []))
-        .catch(() => alert("Error cargando tareas"));
+        .then(data => mostrarTareas(fechaSeleccionada, data.tareas || []));
     }
 
+    /* ---------------------------
+       MOSTRAR TAREAS
+    ----------------------------*/
     function mostrarTareas(fecha, tareas) {
       document.getElementById("tituloDia").textContent = "Tareas del " + fecha;
 
@@ -311,7 +314,6 @@
         t.estado === "pendiente" ||
         t.estado === "en_proceso" ||
         t.estado === "en_revision" ||
-        t.estado === "no_realizada" ||
         t.estado === "devuelto"
       );
 
@@ -327,9 +329,15 @@
       const card = document.createElement("div");
       card.className = "tarea-card";
 
+      const icono =
+        t.estado === "en_proceso" ? "🟡" :
+        t.estado === "en_revision" ? "🔵" :
+        t.estado === "devuelto" ? "🟠" :
+        "⚪";
+
       card.innerHTML = `
         <strong>Tarea:</strong> ${escapeHTML(t.tarea)}<br>
-        <p><strong>Estado actual:</strong> ${escapeHTML(t.estado || "pendiente")}</p>
+        <p><strong>Estado:</strong> ${icono} ${escapeHTML(t.estado)}</p>
 
         <button class="btn-mini"
                 onclick="cambiarEstado('${t.tarea}', 'en_proceso', '${fecha}')">
@@ -373,6 +381,9 @@
       document.getElementById("listaTareas").appendChild(card);
     }
 
+    /* ---------------------------
+       CAMBIAR ESTADO
+    ----------------------------*/
     function cambiarEstado(tarea, estado, fecha) {
       fetch(`${API}/guardar-estado`, {
         method: "POST",
@@ -384,13 +395,11 @@
           estado
         })
       })
-      .then(res => res.json())
-      .then(() => cargarTareasDelDia())
-      .catch(() => alert("Error guardando estado"));
+      .then(() => cargarTareasDelDia());
     }
 
     function marcarNoRealizada(tarea, fecha) {
-      const motivo = prompt("Escribe el motivo de no realización:");
+      const motivo = prompt("Motivo de no realización:");
       if (!motivo) return;
 
       fetch(`${API}/guardar-estado`, {
@@ -404,9 +413,7 @@
           motivoNoRealizada: motivo
         })
       })
-      .then(res => res.json())
-      .then(() => cargarTareasDelDia())
-      .catch(() => alert("Error guardando estado"));
+      .then(() => cargarTareasDelDia());
     }
 
     function agregarObservacion(tarea, fecha) {
@@ -423,9 +430,7 @@
           observacion: obs
         })
       })
-      .then(res => res.json())
-      .then(() => cargarTareasDelDia())
-      .catch(() => alert("Error guardando observación"));
+      .then(() => cargarTareasDelDia());
     }
   </script>
 
