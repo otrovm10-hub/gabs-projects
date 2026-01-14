@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <title>Panel del Empleado</title>
 
-  <link rel="manifest" href="/manifest.json">
+  <!-- Manifest exclusivo del empleado -->
+  <link rel="manifest" href="/manifest-empleado.json">
 
   <style>
     body {
@@ -193,7 +194,7 @@
           "Hola, " + escapeHTML(nombreEmpleado);
 
         document.getElementById("bienvenida").textContent =
-          "Bienvenido a tu panel de tareas. Aquí verás tus actividades en tiempo real.";
+          "Bienvenido a tu panel de tareas.";
 
         cargarCalendario();
       });
@@ -255,7 +256,6 @@
 
             const colores = tareas.map(t => {
               if (t.estado === "en_proceso") return "🟡";
-              if (t.estado === "en_revision") return "🔵";
               if (t.estado === "devuelto") return "🟠";
               return "⚪";
             }).join("");
@@ -313,7 +313,6 @@
       const visibles = tareas.filter(t =>
         t.estado === "pendiente" ||
         t.estado === "en_proceso" ||
-        t.estado === "en_revision" ||
         t.estado === "devuelto"
       );
 
@@ -331,7 +330,6 @@
 
       const icono =
         t.estado === "en_proceso" ? "🟡" :
-        t.estado === "en_revision" ? "🔵" :
         t.estado === "devuelto" ? "🟠" :
         "⚪";
 
@@ -366,7 +364,7 @@
         `;
       }
 
-      if (t.motivoNoRealizada && (t.estado === "en_revision" || t.estado === "devuelto")) {
+      if (t.motivoNoRealizada && t.estado === "devuelto") {
         card.innerHTML += `
           <p><strong>Motivo:</strong> ${escapeHTML(t.motivoNoRealizada)}</p>
         `;
@@ -390,9 +388,9 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           empleado: empleadoID,
-          fecha,
-          tarea,
-          estado
+          fecha: fecha,
+          tarea: tarea.trim(),
+          estado: estado
         })
       })
       .then(() => cargarTareasDelDia());
@@ -407,8 +405,8 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           empleado: empleadoID,
-          fecha,
-          tarea,
+          fecha: fecha,
+          tarea: tarea.trim(),
           estado: "no_realizada",
           motivoNoRealizada: motivo
         })
@@ -425,8 +423,8 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           empleado: empleadoID,
-          fecha,
-          tarea,
+          fecha: fecha,
+          tarea: tarea.trim(),
           observacion: obs
         })
       })
@@ -434,6 +432,7 @@
     }
   </script>
 
+  <!-- Service Worker -->
   <script>
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("/service-worker.js");
