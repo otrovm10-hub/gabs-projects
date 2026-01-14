@@ -4,8 +4,7 @@
   <meta charset="UTF-8">
   <title>Panel del Administrador</title>
 
-  <!-- Manifest exclusivo del administrador -->
-  <link rel="manifest" href="/manifest-admin.json">
+  <link rel="manifest" href="/manifest.json">
 
   <style>
     body {
@@ -22,7 +21,7 @@
     }
 
     #panel {
-      max-width: 1000px;
+      max-width: 900px;
       margin: 20px auto;
       background: #2a2a2a;
       padding: 20px;
@@ -30,18 +29,11 @@
       border-left: 5px solid #c1121f;
     }
 
-    input, button, select {
-      width: 100%;
+    button {
       padding: 10px;
       margin-top: 10px;
       border-radius: 5px;
       border: 2px solid #c1121f;
-      background: #1e1e1e;
-      color: #ffffff;
-      font-size: 16px;
-    }
-
-    button {
       background: #ffc300;
       color: #1e1e1e;
       cursor: pointer;
@@ -51,6 +43,17 @@
     button:hover {
       background: #c1121f;
       color: #ffffff;
+    }
+
+    select, input {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      border-radius: 5px;
+      border: 2px solid #c1121f;
+      background: #1e1e1e;
+      color: #ffffff;
+      font-size: 16px;
     }
 
     .cal-grid {
@@ -99,6 +102,24 @@
       background: #c1121f;
       color: #ffffff;
     }
+
+    #popup {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.7);
+      display: none;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #popupBox {
+      background: #2a2a2a;
+      padding: 20px;
+      border-radius: 10px;
+      width: 300px;
+      border-left: 5px solid #ffc300;
+    }
   </style>
 </head>
 
@@ -107,6 +128,27 @@
   <h1>Panel del Administrador</h1>
 
   <div id="panel">
+
+    <button onclick="window.location.href='historial.html'">📘 Ver historial</button>
+
+    <div id="asignarBox" style="margin-bottom:20px; padding:15px; background:#2a2a2a; border-radius:10px; border-left:5px solid #ffc300;">
+      <h3>Asignar nueva tarea</h3>
+
+      <label>Empleado:</label>
+      <select id="selEmpleado"></select>
+
+      <label>Fecha:</label>
+      <input type="date" id="selFecha">
+
+      <label>Categoría:</label>
+      <select id="selCategoria" onchange="cargarTareasCategoria()"></select>
+
+      <label>Tarea:</label>
+      <select id="selTarea"></select>
+
+      <button onclick="asignarTarea()">Asignar tarea</button>
+    </div>
+
     <h3>Calendario de tareas</h3>
 
     <div>
@@ -120,24 +162,68 @@
 
     <h3 id="tituloDia"></h3>
     <div id="listaTareas"></div>
+
+  </div>
+
+  <div id="popup">
+    <div id="popupBox">
+      <h3>Reprogramar tarea</h3>
+      <label>Nueva fecha:</label>
+      <input type="date" id="nuevaFecha">
+
+      <label>Observación:</label>
+      <input type="text" id="obsReprogramar" placeholder="Motivo de reprogramación">
+
+      <button onclick="confirmarReprogramacion()">Confirmar</button>
+      <button onclick="cerrarPopup()">Cancelar</button>
+    </div>
   </div>
 
   <script>
     const API = "https://gabs-backend-ultima.onrender.com";
 
+    let empleados = {};
+    let catalogo = {};
     let fechaActual = new Date();
-    let fechaSeleccionada = null;
-    let intervaloRefresco = null;
+    let tareaReprogramar = null;
 
-    function escapeHTML(str) {
-      if (!str) return "";
-      return str.replace(/[&<>"']/g, m => ({
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#39;"
-      }[m]));
+    /* ---------------------------
+       CARGAR EMPLEADOS Y CATÁLOGO
+    ----------------------------*/
+    fetch(`${API}/empleados`)
+      .then(res => res.json())
+      .then(data => {
+        empleados = data;
+        const sel = document.getElementById("selEmpleado");
+
+        Object.entries(data).forEach(([id, nombre]) => {
+          sel.innerHTML += `<option value="${id}">${nombre} (${id})</option>`;
+        });
+      });
+
+    fetch(`${API}/catalogo`)
+      .then(res => res.json())
+      .then(data => {
+        catalogo = data;
+        cargarCategorias();
+      });
+
+    function cargarCategorias() {
+      const sel = document.getElementById("selCategoria");
+      sel.innerHTML = "";
+      Object.keys(catalogo).forEach(cat => {
+        sel.innerHTML += `<option value="${cat}">${cat}</option>`;
+      });
+      cargarTareasCategoria();
+    }
+
+    function cargarTareasCategoria() {
+      const categoria = document.getElementById("selCategoria").value;
+      const sel = document.getElementById("selTarea");
+      sel.innerHTML = "";
+      catalogo[categoria].forEach(t => {
+        sel.innerHTML += `<option value="${t}">${t}</option>`;
+      });
     }
 
     /* ---------------------------
@@ -154,25 +240,32 @@
       const ultimoDia = new Date(año, mes + 1, 0);
 
       const cont = document.getElementById("calendario");
-      cont.innerHTML = `<div class="cal-grid"></div>`;
-      const grid = cont.querySelector(".cal-grid");
+      cont.innerHTML = "";
 
-      for (let i = 0; i < primerDia.getDay(); i++) {
-        grid.innerHTML += `<div></div>`;
-      }
+      let html = `<div class="cal-grid">`;
+
+      for (let i = 0; i < primerDia.getDay(); i++) html += `<div></div>`;
 
       for (let dia = 1; dia <= ultimoDia.getDate(); dia++) {
         const fecha = `${año}-${String(mes + 1).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
 
-        grid.innerHTML += `
-          <div class="cal-dia" onclick="verDia('${fecha}')">
+        html += `
+          <div class="cal-dia" onclick="seleccionarDia('${fecha}')">
             <strong>${dia}</strong><br>
             <div id="info-${fecha}">Cargando...</div>
           </div>
         `;
       }
 
+      html += `</div>`;
+      cont.innerHTML = html;
+
       cargarResumenMes(año, mes);
+    }
+
+    function seleccionarDia(fecha) {
+      document.getElementById("selFecha").value = fecha;
+      verDia(fecha);
     }
 
     function cargarResumenMes(año, mes) {
@@ -183,25 +276,200 @@
 
         fetch(`${API}/admin/tareas-completas?fecha=${fecha}`)
           .then(res => res.json())
-          .then(tareas => {
+          .then(data => {
+
+            const visibles = data.filter(t =>
+              t.estado !== "terminada"
+            );
+
             const div = document.getElementById("info-" + fecha);
             if (!div) return;
 
-            if (tareas.length === 0) {
-              div.textContent = "0 tareas";
+            if (visibles.length === 0) {
+              div.innerHTML = "0 tareas";
               return;
             }
 
-            const colores = tareas.map(t => {
-              if (t.estado === "en_revision") return "🟡";
+            let colores = visibles.map(t => {
+              if (t.estado === "en_proceso") return "🟡";
+              if (t.estado === "no_realizada") return "🔴";
+              if (t.estado === "en_revision") return "🔵";
               if (t.estado === "devuelto") return "🟠";
-              if (t.estado === "terminada") return "🟢";
               return "⚪";
             }).join("");
 
-            div.innerHTML = `${tareas.length} tareas<br>${colores}`;
+            div.innerHTML = `${visibles.length} tareas<br>${colores}`;
           });
       }
+    }
+
+    function verDia(fecha) {
+      document.getElementById("tituloDia").textContent = "Tareas del " + fecha;
+
+      const cont = document.getElementById("listaTareas");
+      cont.innerHTML = "<p>Cargando...</p>";
+
+      fetch(`${API}/admin/tareas-completas?fecha=${fecha}`)
+        .then(res => res.json())
+        .then(data => mostrarTareas(fecha, data));
+    }
+
+    /* ⭐⭐⭐ CORREGIDO: EL ADMIN YA NO VE TAREAS TERMINADAS ⭐⭐⭐ */
+    function mostrarTareas(fecha, tareas) {
+      const cont = document.getElementById("listaTareas");
+      cont.innerHTML = "";
+
+      const visibles = tareas.filter(t =>
+        t.estado !== "terminada"
+      );
+
+      if (visibles.length === 0) {
+        cont.innerHTML = "<p>No hay tareas este día.</p>";
+        return;
+      }
+
+      visibles.forEach(t => crearTarjeta(t, fecha));
+    }
+
+    function crearTarjeta(t, fecha) {
+      const card = document.createElement("div");
+      card.className = "tarea-card";
+
+      const icono =
+        t.estado === "en_proceso" ? "🟡" :
+        t.estado === "no_realizada" ? "🔴" :
+        t.estado === "en_revision" ? "🔵" :
+        t.estado === "devuelto" ? "🟠" :
+        t.estado === "pendiente" ? "⚪" :
+        "⚪";
+
+      card.innerHTML = `
+        <strong>Empleado:</strong> ${empleados[t.id]} (${t.id})<br>
+        <strong>Tarea:</strong> ${t.tarea}<br>
+        <strong>Estado:</strong> ${icono} ${t.estado}<br>
+        ${t.obsEmpleado ? `<strong>Obs empleado:</strong> ${t.obsEmpleado}<br>` : ""}
+        ${t.obsAdmin ? `<strong>Obs admin:</strong> ${t.obsAdmin}<br>` : ""}
+        ${t.motivoNoRealizada ? `<strong>Motivo:</strong> ${t.motivoNoRealizada}<br>` : ""}
+        <br>
+
+        <button class="btn-mini" onclick="aprobarTarea('${t.id}', '${fecha}', '${t.tarea}')">Aprobar</button>
+        <button class="btn-mini" onclick="devolverTarea('${t.id}', '${fecha}', '${t.tarea}')">Devolver</button>
+        <button class="btn-mini" onclick="abrirPopup('${t.id}', '${fecha}', '${t.tarea}')">Reprogramar</button>
+        <button class="btn-mini" onclick="guardarObsAdmin('${t.id}', '${fecha}', '${t.tarea}')">Obs admin</button>
+      `;
+
+      document.getElementById("listaTareas").appendChild(card);
+    }
+
+    /* ---------------------------
+       ASIGNAR TAREA
+    ----------------------------*/
+    async function asignarTarea() {
+      const id = document.getElementById("selEmpleado").value;
+      const fecha = document.getElementById("selFecha").value;
+      const tarea = document.getElementById("selTarea").value;
+
+      await fetch(`${API}/admin/agregar-tarea`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, fecha, tarea })
+      });
+
+      verDia(fecha);
+    }
+
+    /* ---------------------------
+       APROBAR TAREA
+    ----------------------------*/
+    async function aprobarTarea(id, fecha, tarea) {
+      const obs = prompt("Observación del admin (opcional):") || "";
+
+      await fetch(`${API}/admin/aprobar`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, fecha, tarea, observacionAdmin: obs })
+      });
+
+      verDia(fecha);
+    }
+
+    /* ---------------------------
+       DEVOLVER TAREA (CORREGIDO)
+    ----------------------------*/
+    async function devolverTarea(id, fecha, tarea) {
+      const motivo = prompt("Motivo de devolución:") || "";
+
+      await fetch(`${API}/admin/devolver`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id,
+          fecha,
+          tarea,
+          motivo
+        })
+      });
+
+      verDia(fecha);
+    }
+
+    /* ---------------------------
+       OBSERVACIÓN ADMIN
+    ----------------------------*/
+    async function guardarObsAdmin(id, fecha, tarea) {
+      const obs = prompt("Observación del admin:");
+      if (!obs) return;
+
+      await fetch(`${API}/guardar-observacion-admin`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id,
+          fecha,
+          tarea,
+          observacionAdmin: obs
+        })
+      });
+
+      verDia(fecha);
+    }
+
+    /* ---------------------------
+       REPROGRAMAR TAREA
+    ----------------------------*/
+    function abrirPopup(id, fecha, tarea) {
+      tareaReprogramar = { id, fecha, tarea };
+      document.getElementById("popup").style.display = "flex";
+    }
+
+    function cerrarPopup() {
+      document.getElementById("popup").style.display = "none";
+      tareaReprogramar = null;
+    }
+
+    async function confirmarReprogramacion() {
+      const nuevaFecha = document.getElementById("nuevaFecha").value;
+      const obs = document.getElementById("obsReprogramar").value;
+
+      await fetch(`${API}/admin/reprogramar`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: tareaReprogramar.id,
+          fecha: tareaReprogramar.fecha,
+          tarea: tareaReprogramar.tarea,
+          nuevaFecha,
+          observacionAdmin: obs
+        })
+      });
+
+      cerrarPopup();
+      verDia(tareaReprogramar.fecha);
+    }
+
+    function nombreMes(m) {
+      return ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio",
+              "Agosto","Septiembre","Octubre","Noviembre","Diciembre"][m];
     }
 
     function mesAnterior() {
@@ -214,143 +482,9 @@
       cargarCalendario();
     }
 
-    function nombreMes(m) {
-      return [
-        "Enero","Febrero","Marzo","Abril","Mayo","Junio",
-        "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"
-      ][m];
-    }
-
-    /* ---------------------------
-       VER TAREAS DEL DÍA
-    ----------------------------*/
-    function verDia(fecha) {
-      fechaSeleccionada = fecha;
-      cargarTareasDelDia();
-
-      if (intervaloRefresco) clearInterval(intervaloRefresco);
-      intervaloRefresco = setInterval(cargarTareasDelDia, 5000);
-    }
-
-    function cargarTareasDelDia() {
-      if (!fechaSeleccionada) return;
-
-      fetch(`${API}/admin/tareas-completas?fecha=${fechaSeleccionada}`)
-        .then(res => res.json())
-        .then(tareas => mostrarTareas(fechaSeleccionada, tareas));
-    }
-
-    /* ---------------------------
-       MOSTRAR TAREAS
-    ----------------------------*/
-    function mostrarTareas(fecha, tareas) {
-      document.getElementById("tituloDia").textContent = "Tareas del " + fecha;
-
-      const cont = document.getElementById("listaTareas");
-      cont.innerHTML = "";
-
-      if (tareas.length === 0) {
-        cont.innerHTML = "<p>No hay tareas este día.</p>";
-        return;
-      }
-
-      tareas.forEach(t => crearTarjeta(t, fecha));
-    }
-
-    function crearTarjeta(t, fecha) {
-      const card = document.createElement("div");
-      card.className = "tarea-card";
-
-      const icono =
-        t.estado === "en_revision" ? "🟡" :
-        t.estado === "devuelto" ? "🟠" :
-        t.estado === "terminada" ? "🟢" :
-        "⚪";
-
-      card.innerHTML = `
-        <strong>${escapeHTML(t.nombre)}</strong><br>
-        <strong>Tarea:</strong> ${escapeHTML(t.tarea)}<br>
-        <p><strong>Estado:</strong> ${icono} ${escapeHTML(t.estado)}</p>
-      `;
-
-      if (t.obsEmpleado) {
-        card.innerHTML += `<p><strong>Obs. Empleado:</strong> ${escapeHTML(t.obsEmpleado)}</p>`;
-      }
-
-      if (t.motivoNoRealizada) {
-        card.innerHTML += `<p><strong>Motivo:</strong> ${escapeHTML(t.motivoNoRealizada)}</p>`;
-      }
-
-      if (t.obsAdmin) {
-        card.innerHTML += `<p><strong>Obs. Admin:</strong> ${escapeHTML(t.obsAdmin)}</p>`;
-      }
-
-      card.innerHTML += `
-        <button class="btn-mini" onclick="aprobar('${t.id}','${fecha}','${escapeHTML(t.tarea)}')">Aprobar</button>
-        <button class="btn-mini" onclick="devolver('${t.id}','${fecha}','${escapeHTML(t.tarea)}')">Devolver</button>
-        <button class="btn-mini" onclick="reprogramar('${t.id}','${fecha}','${escapeHTML(t.tarea)}')">Reprogramar</button>
-        <button class="btn-mini" onclick="obsAdmin('${t.id}','${fecha}','${escapeHTML(t.tarea)}')">Observación</button>
-      `;
-
-      document.getElementById("listaTareas").appendChild(card);
-    }
-
-    /* ---------------------------
-       ACCIONES DEL ADMIN
-    ----------------------------*/
-    function aprobar(id, fecha, tarea) {
-      const obs = prompt("Observación (opcional):") || "";
-
-      fetch(`${API}/admin/aprobar`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, fecha, tarea, observacionAdmin: obs })
-      })
-      .then(() => cargarTareasDelDia());
-    }
-
-    function devolver(id, fecha, tarea) {
-      const motivo = prompt("Motivo de devolución:");
-      if (!motivo) return;
-
-      fetch(`${API}/admin/devolver`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, fecha, tarea, motivo })
-      })
-      .then(() => cargarTareasDelDia());
-    }
-
-    function reprogramar(id, fecha, tarea) {
-      const nuevaFecha = prompt("Nueva fecha (YYYY-MM-DD):");
-      if (!nuevaFecha) return;
-
-      const obs = prompt("Observación (opcional):") || "";
-
-      fetch(`${API}/admin/reprogramar`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, fecha, tarea, nuevaFecha, observacionAdmin: obs })
-      })
-      .then(() => cargarTareasDelDia());
-    }
-
-    function obsAdmin(id, fecha, tarea) {
-      const obs = prompt("Escribe tu observación:");
-      if (!obs) return;
-
-      fetch(`${API}/guardar-observacion-admin`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, fecha, tarea, observacionAdmin: obs })
-      })
-      .then(() => cargarTareasDelDia());
-    }
-
     cargarCalendario();
   </script>
 
-  <!-- Service Worker -->
   <script>
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("/service-worker.js");
