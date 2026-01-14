@@ -98,6 +98,12 @@
       background: #c1121f;
       color: #ffffff;
     }
+
+    #bienvenida {
+      margin-top: 10px;
+      font-style: italic;
+      color: #ddd;
+    }
   </style>
 </head>
 
@@ -106,13 +112,15 @@
   <h1>Panel del Empleado</h1>
 
   <div id="login">
-    <h3>Ingrese su ID</h3>
-    <input type="number" id="idEmpleado" placeholder="Ej: 101">
-    <button onclick="entrar()">Entrar</button>
+    <h3>Ingrese sus credenciales</h3>
+    <input type="text" id="usuario" placeholder="Usuario (ej: jimmy)">
+    <input type="password" id="clave" placeholder="Clave (ej: 1234)">
+    <button onclick="login()">Entrar</button>
   </div>
 
   <div id="panel" style="display:none;">
     <h2 id="nombreEmpleado"></h2>
+    <div id="bienvenida"></div>
 
     <h3>Calendario de tareas</h3>
 
@@ -132,9 +140,11 @@
   <script>
     const API = "https://gabs-backend-ultima.onrender.com";
 
-    let empleados = {};
     let empleadoID = null;
+    let nombreEmpleado = "";
     let fechaActual = new Date();
+    let fechaSeleccionada = null;
+    let intervaloRefresco = null;
 
     function escapeHTML(str) {
       if (!str) return "";
@@ -147,23 +157,42 @@
       }[m]));
     }
 
-    fetch(`${API}/empleados`)
+    function login() {
+      const usuario = document.getElementById("usuario").value.trim();
+      const clave = document.getElementById("clave").value.trim();
+
+      if (!usuario || !clave) {
+        alert("Ingrese usuario y clave");
+        return;
+      }
+
+      fetch(`${API}/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ usuario, clave })
+      })
       .then(res => res.json())
-      .then(data => empleados = data)
-      .catch(() => alert("Error cargando empleados"));
+      .then(data => {
+        if (!data.ok) {
+          alert(data.mensaje || "Credenciales incorrectas");
+          return;
+        }
 
-    function entrar() {
-      empleadoID = document.getElementById("idEmpleado").value.trim();
-      if (!empleadoID) return alert("Ingrese un ID válido");
+        empleadoID = data.id;
+        nombreEmpleado = data.nombre;
 
-      const info = empleados[empleadoID];
-      if (!info) return alert("Empleado no encontrado");
+        document.getElementById("login").style.display = "none";
+        document.getElementById("panel").style.display = "block";
 
-      document.getElementById("login").style.display = "none";
-      document.getElementById("panel").style.display = "block";
-      document.getElementById("nombreEmpleado").textContent = "Hola " + escapeHTML(info.nombre);
+        document.getElementById("nombreEmpleado").textContent =
+          "Hola, " + escapeHTML(nombreEmpleado);
 
-      cargarCalendario();
+        document.getElementById("bienvenida").textContent =
+          "Bienvenido a tu panel de tareas. Aquí verás tus actividades, estados y observaciones en tiempo real.";
+
+        cargarCalendario();
+      })
+      .catch(() => alert("Error en el login"));
     }
 
     function cargarCalendario() {
@@ -222,6 +251,7 @@
               if (t.estado === "en_proceso") return "🟡";
               if (t.estado === "no_realizada") return "🔴";
               if (t.estado === "en_revision") return "🔵";
+              if (t.estado === "devuelto") return "🟠";
               return "⚪";
             }).join("");
 
@@ -252,9 +282,22 @@
     }
 
     function verDia(fecha) {
-      fetch(`${API}/tareas-del-dia/${empleadoID}?fecha=${fecha}`)
+      fechaSeleccionada = fecha;
+      cargarTareasDelDia();
+
+      if (intervaloRefresco) {
+        clearInterval(intervaloRefresco);
+      }
+
+      intervaloRefresco = setInterval(cargarTareasDelDia, 5000);
+    }
+
+    function cargarTareasDelDia() {
+      if (!fechaSeleccionada) return;
+
+      fetch(`${API}/tareas-del-dia/${empleadoID}?fecha=${fechaSeleccionada}`)
         .then(res => res.json())
-        .then(data => mostrarTareas(fecha, data.tareas || []))
+        .then(data => mostrarTareas(fechaSeleccionada, data.tareas || []))
         .catch(() => alert("Error cargando tareas"));
     }
 
@@ -268,7 +311,8 @@
         t.estado === "pendiente" ||
         t.estado === "en_proceso" ||
         t.estado === "en_revision" ||
-        t.estado === "no_realizada"
+        t.estado === "no_realizada" ||
+        t.estado === "devuelto"
       );
 
       if (visibles.length === 0) {
@@ -284,7 +328,8 @@
       card.className = "tarea-card";
 
       card.innerHTML = `
-        <strong>Tarea:</strong> ${escapeHTML(t.tarea)}<br><br>
+        <strong>Tarea:</strong> ${escapeHTML(t.tarea)}<br>
+        <p><strong>Estado actual:</strong> ${escapeHTML(t.estado || "pendiente")}</p>
 
         <button class="btn-mini"
                 onclick="cambiarEstado('${t.tarea}', 'en_proceso', '${fecha}')">
@@ -297,7 +342,7 @@
         </button>
 
         <button class="btn-mini"
-                onclick="cambiarEstado('${t.tarea}', 'no_realizada', '${fecha}')">
+                onclick="marcarNoRealizada('${t.tarea}', '${fecha}')">
           No realizada
         </button>
 
@@ -313,21 +358,15 @@
         `;
       }
 
-      if (t.motivoNoRealizada && t.estado === "en_revision") {
+      if (t.motivoNoRealizada && (t.estado === "en_revision" || t.estado === "devuelto")) {
         card.innerHTML += `
-          <p><strong>Tu motivo:</strong> ${escapeHTML(t.motivoNoRealizada)}</p>
+          <p><strong>Motivo:</strong> ${escapeHTML(t.motivoNoRealizada)}</p>
         `;
       }
 
       if (t.obsAdmin) {
         card.innerHTML += `
           <p><strong>Observación del administrador:</strong> ${escapeHTML(t.obsAdmin)}</p>
-        `;
-      }
-
-      if (t.motivoNoRealizada && t.estado !== "en_proceso") {
-        card.innerHTML += `
-          <p><strong>Motivo del administrador:</strong> ${escapeHTML(t.motivoNoRealizada)}</p>
         `;
       }
 
@@ -346,7 +385,27 @@
         })
       })
       .then(res => res.json())
-      .then(() => verDia(fecha))
+      .then(() => cargarTareasDelDia())
+      .catch(() => alert("Error guardando estado"));
+    }
+
+    function marcarNoRealizada(tarea, fecha) {
+      const motivo = prompt("Escribe el motivo de no realización:");
+      if (!motivo) return;
+
+      fetch(`${API}/guardar-estado`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          empleado: empleadoID,
+          fecha,
+          tarea,
+          estado: "no_realizada",
+          motivoNoRealizada: motivo
+        })
+      })
+      .then(res => res.json())
+      .then(() => cargarTareasDelDia())
       .catch(() => alert("Error guardando estado"));
     }
 
@@ -365,10 +424,9 @@
         })
       })
       .then(res => res.json())
-      .then(() => verDia(fecha))
+      .then(() => cargarTareasDelDia())
       .catch(() => alert("Error guardando observación"));
     }
-
   </script>
 
   <script>
