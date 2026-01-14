@@ -268,7 +268,6 @@
       verDia(fecha);
     }
 
-    /* ⭐⭐⭐ CORREGIDO: EL ADMIN YA NO VE TAREAS TERMINADAS ⭐⭐⭐ */
     function cargarResumenMes(año, mes) {
       const ultimoDia = new Date(año, mes + 1, 0).getDate();
 
@@ -294,6 +293,8 @@
             let colores = visibles.map(t => {
               if (t.estado === "en_proceso") return "🟡";
               if (t.estado === "no_realizada") return "🔴";
+              if (t.estado === "en_revision") return "🔵";
+              if (t.estado === "devuelto") return "🟠";
               return "⚪";
             }).join("");
 
@@ -334,10 +335,18 @@
       const card = document.createElement("div");
       card.className = "tarea-card";
 
+      const icono =
+        t.estado === "en_proceso" ? "🟡" :
+        t.estado === "no_realizada" ? "🔴" :
+        t.estado === "en_revision" ? "🔵" :
+        t.estado === "devuelto" ? "🟠" :
+        t.estado === "pendiente" ? "⚪" :
+        "⚪";
+
       card.innerHTML = `
         <strong>Empleado:</strong> ${empleados[t.id]} (${t.id})<br>
         <strong>Tarea:</strong> ${t.tarea}<br>
-        <strong>Estado:</strong> ${t.estado}<br>
+        <strong>Estado:</strong> ${icono} ${t.estado}<br>
         ${t.obsEmpleado ? `<strong>Obs empleado:</strong> ${t.obsEmpleado}<br>` : ""}
         ${t.obsAdmin ? `<strong>Obs admin:</strong> ${t.obsAdmin}<br>` : ""}
         ${t.motivoNoRealizada ? `<strong>Motivo:</strong> ${t.motivoNoRealizada}<br>` : ""}
@@ -385,20 +394,19 @@
     }
 
     /* ---------------------------
-       DEVOLVER TAREA
+       DEVOLVER TAREA (CORREGIDO)
     ----------------------------*/
     async function devolverTarea(id, fecha, tarea) {
       const motivo = prompt("Motivo de devolución:") || "";
 
-      await fetch(`${API}/guardar-estado`, {
+      await fetch(`${API}/admin/devolver`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          empleado: id,
+          id,
           fecha,
           tarea,
-          estado: "no_realizada",
-          motivoNoRealizada: motivo
+          motivo
         })
       });
 
