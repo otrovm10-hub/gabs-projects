@@ -221,6 +221,7 @@
               if (t.estado === "terminada") return "🟢";
               if (t.estado === "en_proceso") return "🟡";
               if (t.estado === "no_realizada") return "🔴";
+              if (t.estado === "en_revision") return "🔵";
               return "⚪";
             }).join("");
 
@@ -264,7 +265,10 @@
       cont.innerHTML = "";
 
       const visibles = tareas.filter(t =>
-        t.estado === "pendiente" || t.estado === "en_proceso"
+        t.estado === "pendiente" ||
+        t.estado === "en_proceso" ||
+        t.estado === "en_revision" ||
+        t.estado === "no_realizada"
       );
 
       if (visibles.length === 0) {
@@ -275,7 +279,6 @@
       visibles.forEach(t => crearTarjeta(t, fecha));
     }
 
-    /* ⭐⭐⭐ TARJETA COMPLETA: OBSERVACIONES + MOTIVOS ⭐⭐⭐ */
     function crearTarjeta(t, fecha) {
       const card = document.createElement("div");
       card.className = "tarea-card";
