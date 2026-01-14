@@ -199,7 +199,7 @@
     }
 
     function cargarResumenMes(año, mes) {
-      const ultimoDia = new Date(año, mes + 1, 0).getgetDate();
+      const ultimoDia = new Date(año, mes + 1, 0).getDate();
 
       for (let dia = 1; dia <= ultimoDia; dia++) {
         const fecha = `${año}-${String(mes + 1).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
