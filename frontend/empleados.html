@@ -199,7 +199,7 @@
     }
 
     function cargarResumenMes(año, mes) {
-      const ultimoDia = new Date(año, mes + 1, 0).getDate();
+      const ultimoDia = new Date(año, mes + 1, 0).getgetDate();
 
       for (let dia = 1; dia <= ultimoDia; dia++) {
         const fecha = `${año}-${String(mes + 1).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
@@ -275,7 +275,7 @@
       visibles.forEach(t => crearTarjeta(t, fecha));
     }
 
-    /* ⭐⭐⭐ TARJETA CORREGIDA: AHORA MUESTRA OBSERVACIÓN DEL ADMIN ⭐⭐⭐ */
+    /* ⭐⭐⭐ TARJETA COMPLETA: OBSERVACIONES + MOTIVOS ⭐⭐⭐ */
     function crearTarjeta(t, fecha) {
       const card = document.createElement("div");
       card.className = "tarea-card";
@@ -304,17 +304,27 @@
         </button>
       `;
 
-      // ⭐ Observación del empleado
       if (t.obsEmpleado) {
         card.innerHTML += `
           <p><strong>Tu observación:</strong> ${escapeHTML(t.obsEmpleado)}</p>
         `;
       }
 
-      // ⭐ Observación del administrador
+      if (t.motivoNoRealizada && t.estado === "en_revision") {
+        card.innerHTML += `
+          <p><strong>Tu motivo:</strong> ${escapeHTML(t.motivoNoRealizada)}</p>
+        `;
+      }
+
       if (t.obsAdmin) {
         card.innerHTML += `
           <p><strong>Observación del administrador:</strong> ${escapeHTML(t.obsAdmin)}</p>
+        `;
+      }
+
+      if (t.motivoNoRealizada && t.estado !== "en_proceso") {
+        card.innerHTML += `
+          <p><strong>Motivo del administrador:</strong> ${escapeHTML(t.motivoNoRealizada)}</p>
         `;
       }
 
