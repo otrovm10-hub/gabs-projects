@@ -155,6 +155,15 @@
     let fechaSeleccionada = null;
     let intervaloRefresco = null;
 
+    /* ---------------------------
+       SANEAR ID PARA INPUTS
+    ----------------------------*/
+    function limpiarID(texto) {
+      return texto
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // quitar acentos
+        .replace(/[^a-zA-Z0-9]/g, "_"); // reemplazar espacios y caracteres raros
+    }
+
     function escapeHTML(str) {
       if (!str) return "";
       return str.replace(/[&<>"']/g, m => ({
@@ -331,6 +340,8 @@
     }
 
     function crearTarjeta(t, fecha) {
+      const id = limpiarID(t.tarea);
+
       const card = document.createElement("div");
       card.className = "tarea-card";
 
@@ -344,13 +355,13 @@
         <p><strong>Estado:</strong> ${icono} ${escapeHTML(t.estado)}</p>
 
         <label class="foto-label">Foto ANTES:</label>
-        <input type="file" id="antes-${t.tarea}" accept="image/*" capture="environment">
+        <input type="file" id="antes-${id}" accept="image/*" capture="environment">
 
         <label class="foto-label">Foto DESPUÉS:</label>
-        <input type="file" id="despues-${t.tarea}" accept="image/*" capture="environment">
+        <input type="file" id="despues-${id}" accept="image/*" capture="environment">
 
         <label class="foto-label">Observación:</label>
-        <textarea id="obs-${t.tarea}" placeholder="Escriba una observación..."></textarea>
+        <textarea id="obs-${id}" placeholder="Escriba una observación..."></textarea>
 
         <button class="btn-mini" onclick="enviarTarea('${t.tarea}', '${fecha}')">
           Enviar fotos
@@ -384,9 +395,11 @@
        SUBIR FOTOS
     ----------------------------*/
     async function enviarTarea(tarea, fecha) {
-      const fotoAntes = document.getElementById(`antes-${tarea}`).files[0];
-      const fotoDespues = document.getElementById(`despues-${tarea}`).files[0];
-      const obsEmpleado = document.getElementById(`obs-${tarea}`).value;
+      const id = limpiarID(tarea);
+
+      const fotoAntes = document.getElementById(`antes-${id}`).files[0];
+      const fotoDespues = document.getElementById(`despues-${id}`).files[0];
+      const obsEmpleado = document.getElementById(`obs-${id}`).value;
 
       if (!fotoAntes || !fotoDespues) {
         alert("Debe subir ambas fotos.");
