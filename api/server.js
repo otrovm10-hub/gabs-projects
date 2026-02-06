@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import bodyParser from "body-parser";
 import multer from "multer";
+import cors from "cors";
 import { createClient } from "@supabase/supabase-js";
 import { fileURLToPath } from "url";
 
@@ -10,6 +11,20 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+
+// ===============================
+//   CORS (ESTO ERA LO QUE FALTABA)
+// ===============================
+app.use(cors({
+  origin: [
+    "https://gabs-projects-frontend.vercel.app",
+    "http://localhost:3000",
+    "http://localhost:5173"
+  ],
+  methods: ["GET", "POST"],
+  allowedHeaders: ["Content-Type"]
+}));
+
 app.use(bodyParser.json());
 
 // ===============================
