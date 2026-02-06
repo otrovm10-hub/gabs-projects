@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <title>Panel del Empleado</title>
 
-  <!-- Manifest exclusivo del empleado -->
   <link rel="manifest" href="/manifest-empleado.json">
 
   <style>
@@ -30,7 +29,7 @@
       border-left: 5px solid #c1121f;
     }
 
-    input, button {
+    input, button, textarea {
       width: 100%;
       padding: 10px;
       margin-top: 10px;
@@ -104,6 +103,13 @@
       margin-top: 10px;
       font-style: italic;
       color: #ddd;
+    }
+
+    .foto-label {
+      color: #ffc300;
+      font-weight: bold;
+      margin-top: 10px;
+      display: block;
     }
   </style>
 </head>
@@ -302,7 +308,7 @@
     }
 
     /* ---------------------------
-       MOSTRAR TAREAS
+       MOSTRAR TAREAS + FOTOS
     ----------------------------*/
     function mostrarTareas(fecha, tareas) {
       document.getElementById("tituloDia").textContent = "Tareas del " + fecha;
@@ -337,6 +343,19 @@
         <strong>Tarea:</strong> ${escapeHTML(t.tarea)}<br>
         <p><strong>Estado:</strong> ${icono} ${escapeHTML(t.estado)}</p>
 
+        <label class="foto-label">Foto ANTES:</label>
+        <input type="file" id="antes-${t.tarea}" accept="image/*" capture="environment">
+
+        <label class="foto-label">Foto DESPUÉS:</label>
+        <input type="file" id="despues-${t.tarea}" accept="image/*" capture="environment">
+
+        <label class="foto-label">Observación:</label>
+        <textarea id="obs-${t.tarea}" placeholder="Escriba una observación..."></textarea>
+
+        <button class="btn-mini" onclick="enviarTarea('${t.tarea}', '${fecha}')">
+          Enviar fotos
+        </button>
+
         <button class="btn-mini"
                 onclick="cambiarEstado('${t.tarea}', 'en_proceso', '${fecha}')">
           En proceso
@@ -358,25 +377,41 @@
         </button>
       `;
 
-      if (t.obsEmpleado) {
-        card.innerHTML += `
-          <p><strong>Tu observación:</strong> ${escapeHTML(t.obsEmpleado)}</p>
-        `;
-      }
-
-      if (t.motivoNoRealizada && t.estado === "devuelto") {
-        card.innerHTML += `
-          <p><strong>Motivo:</strong> ${escapeHTML(t.motivoNoRealizada)}</p>
-        `;
-      }
-
-      if (t.obsAdmin) {
-        card.innerHTML += `
-          <p><strong>Observación del administrador:</strong> ${escapeHTML(t.obsAdmin)}</p>
-        `;
-      }
-
       document.getElementById("listaTareas").appendChild(card);
+    }
+
+    /* ---------------------------
+       SUBIR FOTOS
+    ----------------------------*/
+    async function enviarTarea(tarea, fecha) {
+      const fotoAntes = document.getElementById(`antes-${tarea}`).files[0];
+      const fotoDespues = document.getElementById(`despues-${tarea}`).files[0];
+      const obsEmpleado = document.getElementById(`obs-${tarea}`).value;
+
+      if (!fotoAntes || !fotoDespues) {
+        alert("Debe subir ambas fotos.");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("empleadoId", empleadoID);
+      formData.append("fecha", fecha);
+      formData.append("tarea", tarea);
+      formData.append("fotoAntes", fotoAntes);
+      formData.append("fotoDespues", fotoDespues);
+      formData.append("obsEmpleado", obsEmpleado);
+
+      const res = await fetch(`${API}/empleado/subir-tarea`, {
+        method: "POST",
+        body: formData
+      });
+
+      if (res.ok) {
+        alert("Tarea enviada correctamente.");
+        cargarTareasDelDia();
+      } else {
+        alert("Error al enviar la tarea.");
+      }
     }
 
     /* ---------------------------
@@ -432,7 +467,6 @@
     }
   </script>
 
-  <!-- Service Worker -->
   <script>
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("/service-worker.js");
