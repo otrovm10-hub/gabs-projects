@@ -13,7 +13,7 @@ const __dirname = path.dirname(__filename);
 const app = express();
 
 // ===============================
-//   CORS (ESTO ERA LO QUE FALTABA)
+//   CORS
 // ===============================
 app.use(cors({
   origin: [
@@ -25,15 +25,19 @@ app.use(cors({
   allowedHeaders: ["Content-Type"]
 }));
 
+// ===============================
+//   BODY PARSERS (ESTO ES CLAVE)
+// ===============================
 app.use(bodyParser.json());
+app.use(express.urlencoded({ extended: true })); // <--- ESTA LÍNEA ES LA QUE FALTABA
 
 // ===============================
-//   CONFIGURAR MULTER
+//   MULTER
 // ===============================
 const upload = multer({ storage: multer.memoryStorage() });
 
 // ===============================
-//   CONFIGURAR SUPABASE
+//   SUPABASE
 // ===============================
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -196,10 +200,13 @@ app.post(
     { name: "fotoDespues", maxCount: 1 }
   ]),
   async (req, res) => {
+
+    console.log("FILES RECIBIDOS:", req.files);
+
     const { empleadoId, fecha, tarea, obsEmpleado } = req.body;
 
-    const fotoAntes = req.files["fotoAntes"]?.[0];
-    const fotoDespues = req.files["fotoDespues"]?.[0];
+    const fotoAntes = req.files?.fotoAntes?.[0];
+    const fotoDespues = req.files?.fotoDespues?.[0];
 
     if (!fotoAntes || !fotoDespues) {
       return res.status(400).json({ error: "Faltan fotos" });
@@ -211,14 +218,12 @@ app.post(
 
       const bucket = process.env.SUPABASE_BUCKET;
 
-      // Subir foto ANTES
       await supabase.storage
         .from(bucket)
         .upload(nombreAntes, fotoAntes.buffer, {
           contentType: fotoAntes.mimetype
         });
 
-      // Subir foto DESPUÉS
       await supabase.storage
         .from(bucket)
         .upload(nombreDespues, fotoDespues.buffer, {
@@ -228,7 +233,6 @@ app.post(
       const urlAntes = supabase.storage.from(bucket).getPublicUrl(nombreAntes).data.publicUrl;
       const urlDespues = supabase.storage.from(bucket).getPublicUrl(nombreDespues).data.publicUrl;
 
-      // Guardar en excepciones.json
       const filePath = path.join(__dirname, "data", "excepciones.json");
       let excepciones = JSON.parse(fs.readFileSync(filePath, "utf8"));
 
