@@ -6,6 +6,9 @@
 
   <link rel="manifest" href="/manifest-empleado.json">
 
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
   <style>
     body {
       background-color: #1e1e1e;
@@ -149,6 +152,18 @@
   <script>
     const API = "https://gabs-backend-ultima.onrender.com";
 
+    /* ---------------------------
+       SUPABASE CONFIG
+    ----------------------------*/
+    const SUPABASE_URL = "https://yqfbgvjcpvbepaquzbkj.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_bkr2CZPPeb7opdgSAxeA7A_kD_YsNjO";
+    const SUPABASE_BUCKET = "fotos";
+
+    const supabase = supabasejs.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    /* ---------------------------
+       VARIABLES
+    ----------------------------*/
     let empleadoID = null;
     let nombreEmpleado = "";
     let fechaActual = new Date();
@@ -293,10 +308,11 @@
     ----------------------------*/
     function verDia(fecha) {
       fechaSeleccionada = fecha;
-      cargarTareasDelDia();
 
       if (intervaloRefresco) clearInterval(intervaloRefresco);
       intervaloRefresco = setInterval(cargarTareasDelDia, 5000);
+
+      cargarTareasDelDia();
     }
 
     function cargarTareasDelDia() {
@@ -386,7 +402,7 @@
     }
 
     /* ---------------------------
-       SUBIR FOTOS (CORREGIDO)
+       SUBIDA DIRECTA A SUPABASE
     ----------------------------*/
     async function enviarTarea(tarea, fecha, idSeguro) {
       const fotoAntes = document.getElementById(`antes-${idSeguro}`).files[0];
@@ -398,25 +414,30 @@
         return;
       }
 
-      const formData = new FormData();
-      formData.append("empleadoId", empleadoID);
-      formData.append("fecha", fecha);
-      formData.append("tarea", tarea);
-      formData.append("fotoAntes", fotoAntes);
-      formData.append("fotoDespues", fotoDespues);
-      formData.append("obsEmpleado", obsEmpleado);
+      const pathAntes = `empleados/${empleadoID}/${fecha}/${tarea}-antes-${Date.now()}.jpg`;
+      const pathDespues = `empleados/${empleadoID}/${fecha}/${tarea}-despues-${Date.now()}.jpg`;
 
-      const res = await fetch(`${API}/empleado/subir-tarea`, {
+      await supabase.storage.from(SUPABASE_BUCKET).upload(pathAntes, fotoAntes);
+      await supabase.storage.from(SUPABASE_BUCKET).upload(pathDespues, fotoDespues);
+
+      const urlAntes = supabase.storage.from(SUPABASE_BUCKET).getPublicUrl(pathAntes).data.publicUrl;
+      const urlDespues = supabase.storage.from(SUPABASE_BUCKET).getPublicUrl(pathDespues).data.publicUrl;
+
+      await fetch(`${API}/empleado/subida-directa`, {
         method: "POST",
-        body: formData
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          empleadoId: empleadoID,
+          fecha,
+          tarea,
+          fotoAntes: urlAntes,
+          fotoDespues: urlDespues,
+          obsEmpleado
+        })
       });
 
-      if (res.ok) {
-        alert("Tarea enviada correctamente.");
-        cargarTareasDelDia();
-      } else {
-        alert("Error al enviar la tarea.");
-      }
+      alert("Tarea enviada correctamente.");
+      cargarTareasDelDia();
     }
 
     /* ---------------------------
@@ -428,9 +449,9 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           empleado: empleadoID,
-          fecha: fecha,
+          fecha,
           tarea: tarea.trim(),
-          estado: estado
+          estado
         })
       })
       .then(() => cargarTareasDelDia());
@@ -445,7 +466,7 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           empleado: empleadoID,
-          fecha: fecha,
+          fecha,
           tarea: tarea.trim(),
           estado: "no_realizada",
           motivoNoRealizada: motivo
@@ -463,7 +484,7 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           empleado: empleadoID,
-          fecha: fecha,
+          fecha,
           tarea: tarea.trim(),
           observacion: obs
         })

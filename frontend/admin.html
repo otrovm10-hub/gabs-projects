@@ -85,16 +85,6 @@
       margin-bottom: 15px;
     }
 
-    #cal-header button {
-      background: #ffc300;
-      color: #1e1e1e;
-      border: none;
-      padding: 8px 12px;
-      border-radius: 5px;
-      cursor: pointer;
-      font-weight: bold;
-    }
-
     #cal-grid {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
@@ -124,331 +114,358 @@
     .cal-dia.devuelta {
       border-left: 5px solid #c1121f;
     }
+
+    img {
+      width: 150px;
+      border-radius: 8px;
+      margin-top: 5px;
+      border: 2px solid #ffc300;
+    }
   </style>
 </head>
 
 <body>
 
-  <h1>Panel del Administrador</h1>
+<h1>Panel del Administrador</h1>
 
-  <!-- CALENDARIO -->
-  <div id="calendario">
-    <h2>Calendario</h2>
+<!-- CALENDARIO -->
+<div id="calendario">
+  <h2>Calendario</h2>
 
-    <div id="cal-header">
-      <button id="prevMes">◀</button>
-      <span id="mesActual"></span>
-      <button id="nextMes">▶</button>
-    </div>
-
-    <div id="cal-grid"></div>
+  <div id="cal-header">
+    <button id="prevMes">◀</button>
+    <span id="mesActual"></span>
+    <button id="nextMes">▶</button>
   </div>
 
-  <!-- LOGIN -->
-  <div id="login">
-    <h3>Ingrese clave de administrador</h3>
-    <input type="password" id="claveAdmin" placeholder="Clave">
-    <button onclick="entrarAdmin()">Entrar</button>
-  </div>
+  <div id="cal-grid"></div>
+</div>
 
-  <!-- PANEL -->
-  <div id="panel" style="display:none;">
-    <h2 id="tituloFecha"></h2>
+<!-- LOGIN -->
+<div id="login">
+  <h3>Ingrese clave de administrador</h3>
+  <input type="password" id="claveAdmin" placeholder="Clave">
+  <button onclick="entrarAdmin()">Entrar</button>
+</div>
 
-    <input type="date" id="fechaSeleccionada">
-    <button onclick="verFecha()">Ver tareas</button>
+<!-- PANEL -->
+<div id="panel" style="display:none;">
+  <h2 id="tituloFecha"></h2>
 
-    <h3>Agregar nueva tarea</h3>
-    <select id="selectEmpleado"></select>
-    <select id="selectCategoria"></select>
-    <select id="selectTarea"></select>
-    <button onclick="agregarTarea()">Agregar</button>
+  <input type="date" id="fechaSeleccionada">
+  <button onclick="verFecha()">Ver tareas</button>
 
-    <h3>Tareas del día</h3>
-    <div id="listaTareas"></div>
-  </div>
+  <h3>Agregar nueva tarea</h3>
+  <select id="selectEmpleado"></select>
+  <select id="selectCategoria"></select>
+  <select id="selectTarea"></select>
+  <button onclick="agregarTarea()">Agregar</button>
 
-  <script>
-    const API = "https://gabs-backend-ultima.onrender.com";
+  <h3>Tareas del día</h3>
+  <div id="listaTareas"></div>
+</div>
 
-    function escapeHTML(str) {
-      if (!str) return "";
-      return str.replace(/[&<>"']/g, m => ({
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#39;"
-      }[m]));
-    }
+<script>
+const API = "https://gabs-backend-ultima.onrender.com";
 
-    /* ---------------------------
-       LOGIN ADMIN
-    ----------------------------*/
-    function entrarAdmin() {
-      const clave = document.getElementById("claveAdmin").value.trim();
-      if (clave !== "admin123") {
-        alert("Clave incorrecta");
-        return;
-      }
+function escapeHTML(str) {
+  if (!str) return "";
+  return str.replace(/[&<>"']/g, m => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  }[m]));
+}
 
-      document.getElementById("login").style.display = "none";
-      document.getElementById("panel").style.display = "block";
+/* ---------------------------
+   LOGIN ADMIN
+----------------------------*/
+function entrarAdmin() {
+  const clave = document.getElementById("claveAdmin").value.trim();
+  if (clave !== "admin123") {
+    alert("Clave incorrecta");
+    return;
+  }
 
-      cargarEmpleados();
-      cargarCatalogo();
-    }
+  document.getElementById("login").style.display = "none";
+  document.getElementById("panel").style.display = "block";
 
-    /* ---------------------------
-       CARGAR EMPLEADOS
-    ----------------------------*/
-    function cargarEmpleados() {
-      fetch(`${API}/empleados`)
-        .then(res => res.json())
-        .then(empleados => {
-          const select = document.getElementById("selectEmpleado");
-          select.innerHTML = "";
+  cargarEmpleados();
+  cargarCatalogo();
+}
 
-          empleados.forEach(e => {
-            const option = document.createElement("option");
-            option.textContent = e.name;
-            option.value = e.id;
-            select.appendChild(option);
-          });
-        });
-    }
+/* ---------------------------
+   CARGAR EMPLEADOS
+----------------------------*/
+function cargarEmpleados() {
+  fetch(`${API}/empleados`)
+    .then(res => res.json())
+    .then(empleados => {
+      const select = document.getElementById("selectEmpleado");
+      select.innerHTML = "";
 
-    /* ---------------------------
-       CARGAR CATALOGO
-    ----------------------------*/
-    function cargarCatalogo() {
-      fetch(`${API}/catalogo`)
-        .then(res => res.json())
-        .then(data => {
-          const selectCat = document.getElementById("selectCategoria");
-          const selectTar = document.getElementById("selectTarea");
-
-          selectCat.innerHTML = "";
-          selectTar.innerHTML = "";
-
-          Object.keys(data).forEach(cat => {
-            const opt = document.createElement("option");
-            opt.textContent = cat;
-            opt.value = cat;
-            selectCat.appendChild(opt);
-          });
-
-          selectCat.onchange = () => {
-            const tareas = data[selectCat.value] || [];
-            selectTar.innerHTML = "";
-            tareas.forEach(t => {
-              const opt = document.createElement("option");
-              opt.textContent = t;
-              opt.value = t;
-              selectTar.appendChild(opt);
-            });
-          };
-
-          selectCat.onchange();
-        });
-    }
-
-    /* ---------------------------
-       VER FECHA
-    ----------------------------*/
-    function verFecha() {
-      const fecha = document.getElementById("fechaSeleccionada").value;
-      if (!fecha) return;
-
-      document.getElementById("tituloFecha").textContent = "Tareas del " + fecha;
-
-      fetch(`${API}/admin/tareas-completas?fecha=${fecha}`)
-        .then(res => res.json())
-        .then(tareas => mostrarTareas(fecha, tareas));
-    }
-
-    /* ---------------------------
-       MOSTRAR TAREAS
-    ----------------------------*/
-    function mostrarTareas(fecha, tareas) {
-      const cont = document.getElementById("listaTareas");
-      cont.innerHTML = "";
-
-      if (tareas.length === 0) {
-        cont.innerHTML = "<p>No hay tareas para este día.</p>";
-        return;
-      }
-
-      tareas.forEach(t => {
-        const card = document.createElement("div");
-        card.className = "tarea-card";
-
-        card.innerHTML = `
-          <strong>Empleado:</strong> ${escapeHTML(t.nombre)}<br>
-          <strong>Tarea:</strong> ${escapeHTML(t.tarea)}<br>
-          <strong>Estado:</strong> ${escapeHTML(t.estado)}<br><br>
-
-          ${t.fotoAntes ? `
-            <p><strong>Foto ANTES:</strong><br>
-            <img src="${t.fotoAntes}" style="width:150px;border-radius:8px;margin-top:5px;"></p>
-          ` : "<p><em>Sin foto ANTES</em></p>"}
-
-          ${t.fotoDespues ? `
-            <p><strong>Foto DESPUÉS:</strong><br>
-            <img src="${t.fotoDespues}" style="width:150px;border-radius:8px;margin-top:5px;"></p>
-          ` : "<p><em>Sin foto DESPUÉS</em></p>"}
-
-          ${t.obsEmpleado ? `<p><strong>Obs empleado:</strong> ${escapeHTML(t.obsEmpleado)}</p>` : ""}
-          ${t.obsAdmin ? `<p><strong>Obs admin:</strong> ${escapeHTML(t.obsAdmin)}</p>` : ""}
-          ${t.motivoNoRealizada ? `<p><strong>Motivo:</strong> ${escapeHTML(t.motivoNoRealizada)}</p>` : ""}
-
-          <button class="btn-mini" onclick="aprobar('${t.id}', '${fecha}', '${t.tarea}')">Aprobar</button>
-          <button class="btn-mini" onclick="devolver('${t.id}', '${fecha}', '${t.tarea}')">Devolver</button>
-          <button class="btn-mini" onclick="reprogramar('${t.id}', '${fecha}', '${t.tarea}')">Reprogramar</button>
-          <button class="btn-mini" onclick="obsAdmin('${t.id}', '${fecha}', '${t.tarea}')">Obs admin</button>
-        `;
-
-        cont.appendChild(card);
+      empleados.forEach(e => {
+        const option = document.createElement("option");
+        option.textContent = e.name;
+        option.value = e.id;
+        select.appendChild(option);
       });
-    }
+    });
+}
 
-    /* ---------------------------
-       APROBAR
-    ----------------------------*/
-    function aprobar(id, fecha, tarea) {
-      const observacionAdmin = prompt("Observación del administrador:");
-      fetch(`${API}/admin/aprobar`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, fecha, tarea, observacionAdmin })
-      })
-      .then(() => verFecha());
-    }
+/* ---------------------------
+   CARGAR CATALOGO
+----------------------------*/
+function cargarCatalogo() {
+  fetch(`${API}/catalogo`)
+    .then(res => res.json())
+    .then(data => {
+      const selectCat = document.getElementById("selectCategoria");
+      const selectTar = document.getElementById("selectTarea");
 
-    /* ---------------------------
-       DEVOLVER
-    ----------------------------*/
-    function devolver(id, fecha, tarea) {
-      const motivo = prompt("Motivo de devolución:");
-      fetch(`${API}/admin/devolver`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, fecha, tarea, motivo })
-      })
-      .then(() => verFecha());
-    }
+      selectCat.innerHTML = "";
+      selectTar.innerHTML = "";
 
-    /* ---------------------------
-       REPROGRAMAR
-    ----------------------------*/
-    function reprogramar(id, fecha, tarea) {
-      const nuevaFecha = prompt("Nueva fecha (YYYY-MM-DD):");
-      if (!nuevaFecha) return;
+      Object.keys(data).forEach(cat => {
+        const opt = document.createElement("option");
+        opt.textContent = cat;
+        opt.value = cat;
+        selectCat.appendChild(opt);
+      });
 
-      const observacionAdmin = prompt("Observación del administrador:");
+      selectCat.onchange = () => {
+        const tareas = data[selectCat.value] || [];
+        selectTar.innerHTML = "";
+        tareas.forEach(t => {
+          const opt = document.createElement("option");
+          opt.textContent = t;
+          opt.value = t;
+          selectTar.appendChild(opt);
+        });
+      };
 
-      fetch(`${API}/admin/reprogramar`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id,
-          fecha,
-          tarea,
-          nuevaFecha,
-          observacionAdmin
-        })
-      })
-      .then(() => verFecha());
-    }
+      selectCat.onchange();
+    });
+}
 
-    /* ---------------------------
-       OBS ADMIN
-    ----------------------------*/
-    function obsAdmin(id, fecha, tarea) {
-      const observacionAdmin = prompt("Observación del administrador:");
-      if (!observacionAdmin) return;
+/* ---------------------------
+   AGREGAR TAREA
+----------------------------*/
+function agregarTarea() {
+  const id = document.getElementById("selectEmpleado").value;
+  const fecha = document.getElementById("fechaSeleccionada").value;
+  const tarea = document.getElementById("selectTarea").value;
 
-      fetch(`${API}/guardar-observacion-admin`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, fecha, tarea, observacionAdmin })
-      })
-      .then(() => verFecha());
-    }
+  if (!id || !fecha || !tarea) {
+    alert("Faltan datos");
+    return;
+  }
 
-    /* ---------------------------
-       CALENDARIO
-    ----------------------------*/
-    const meses = [
-      "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-      "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
-    ];
+  fetch(`${API}/admin/agregar-tarea`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id, fecha, tarea })
+  }).then(() => verFecha());
+}
 
-    let fechaActual = new Date();
+/* ---------------------------
+   VER FECHA
+----------------------------*/
+function verFecha() {
+  const fecha = document.getElementById("fechaSeleccionada").value;
+  if (!fecha) return;
 
-    function renderCalendario() {
-      const año = fechaActual.getFullYear();
-      const mes = fechaActual.getMonth();
+  document.getElementById("tituloFecha").textContent = "Tareas del " + fecha;
 
-      document.getElementById("mesActual").textContent = `${meses[mes]} ${año}`;
+  fetch(`${API}/admin/tareas-completas?fecha=${fecha}`)
+    .then(res => res.json())
+    .then(tareas => mostrarTareas(fecha, tareas));
+}
 
-      const primerDia = new Date(año, mes, 1).getDay();
-      const ultimoDia = new Date(año, mes + 1, 0).getDate();
+/* ---------------------------
+   MOSTRAR TAREAS
+----------------------------*/
+function mostrarTareas(fecha, tareas) {
+  const cont = document.getElementById("listaTareas");
+  cont.innerHTML = "";
 
-      const grid = document.getElementById("cal-grid");
-      grid.innerHTML = "";
+  if (tareas.length === 0) {
+    cont.innerHTML = "<p>No hay tareas para este día.</p>";
+    return;
+  }
 
-      for (let i = 0; i < primerDia; i++) {
-        grid.appendChild(document.createElement("div"));
-      }
+  tareas.forEach(t => {
+    const card = document.createElement("div");
+    card.className = "tarea-card";
 
-      for (let dia = 1; dia <= ultimoDia; dia++) {
-        const celda = document.createElement("div");
-        celda.className = "cal-dia";
-        celda.textContent = dia;
+    card.innerHTML = `
+      <strong>Empleado:</strong> ${escapeHTML(t.nombre)}<br>
+      <strong>Tarea:</strong> ${escapeHTML(t.tarea)}<br>
+      <strong>Estado:</strong> ${escapeHTML(t.estado)}<br><br>
 
-        const fechaStr = `${año}-${String(mes + 1).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
+      ${t.fotoAntes ? `
+        <p><strong>Foto ANTES:</strong><br>
+        <img src="${t.fotoAntes}"></p>
+      ` : "<p><em>Sin foto ANTES</em></p>"}
 
-        fetch(`${API}/admin/tareas-completas?fecha=${fechaStr}`)
-          .then(res => res.json())
-          .then(tareas => {
-            if (tareas.length > 0) {
-              celda.classList.add("con-tareas");
+      ${t.fotoDespues ? `
+        <p><strong>Foto DESPUÉS:</strong><br>
+        <img src="${t.fotoDespues}"></p>
+      ` : "<p><em>Sin foto DESPUÉS</em></p>"}
 
-              const estados = tareas.map(t => t.estado);
+      ${t.obsEmpleado ? `<p><strong>Obs empleado:</strong> ${escapeHTML(t.obsEmpleado)}</p>` : ""}
+      ${t.obsAdmin ? `<p><strong>Obs admin:</strong> ${escapeHTML(t.obsAdmin)}</p>` : ""}
+      ${t.motivoNoRealizada ? `<p><strong>Motivo:</strong> ${escapeHTML(t.motivoNoRealizada)}</p>` : ""}
 
-              if (estados.includes("Aprobada")) celda.classList.add("aprobadas");
-              if (estados.includes("Devuelta")) celda.classList.add("devuelta");
-            }
-          });
+      <button class="btn-mini" onclick="aprobar('${t.id}', '${fecha}', '${t.tarea}')">Aprobar</button>
+      <button class="btn-mini" onclick="devolver('${t.id}', '${fecha}', '${t.tarea}')">Devolver</button>
+      <button class="btn-mini" onclick="reprogramar('${t.id}', '${fecha}', '${t.tarea}')">Reprogramar</button>
+      <button class="btn-mini" onclick="obsAdmin('${t.id}', '${fecha}', '${t.tarea}')">Obs admin</button>
+    `;
 
-        celda.onclick = () => {
-          document.getElementById("fechaSeleccionada").value = fechaStr;
-          verFecha();
-        };
+    cont.appendChild(card);
+  });
+}
 
-        grid.appendChild(celda);
-      }
-    }
+/* ---------------------------
+   APROBAR
+----------------------------*/
+function aprobar(id, fecha, tarea) {
+  const observacionAdmin = prompt("Observación del administrador:");
+  fetch(`${API}/admin/aprobar`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id, fecha, tarea, observacionAdmin })
+  })
+  .then(() => verFecha());
+}
 
-    document.getElementById("prevMes").onclick = () => {
-      fechaActual.setMonth(fechaActual.getMonth() - 1);
-      renderCalendario();
+/* ---------------------------
+   DEVOLVER
+----------------------------*/
+function devolver(id, fecha, tarea) {
+  const motivo = prompt("Motivo de devolución:");
+  fetch(`${API}/admin/devolver`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id, fecha, tarea, motivo })
+  })
+  .then(() => verFecha());
+}
+
+/* ---------------------------
+   REPROGRAMAR
+----------------------------*/
+function reprogramar(id, fecha, tarea) {
+  const nuevaFecha = prompt("Nueva fecha (YYYY-MM-DD):");
+  if (!nuevaFecha) return;
+
+  const observacionAdmin = prompt("Observación del administrador:");
+
+  fetch(`${API}/admin/reprogramar`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      id,
+      fecha,
+      tarea,
+      nuevaFecha,
+      observacionAdmin
+    })
+  })
+  .then(() => verFecha());
+}
+
+/* ---------------------------
+   OBS ADMIN
+----------------------------*/
+function obsAdmin(id, fecha, tarea) {
+  const observacionAdmin = prompt("Observación del administrador:");
+  if (!observacionAdmin) return;
+
+  fetch(`${API}/guardar-observacion-admin`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id, fecha, tarea, observacionAdmin })
+  })
+  .then(() => verFecha());
+}
+
+/* ---------------------------
+   CALENDARIO
+----------------------------*/
+const meses = [
+  "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+];
+
+let fechaActual = new Date();
+
+function renderCalendario() {
+  const año = fechaActual.getFullYear();
+  const mes = fechaActual.getMonth();
+
+  document.getElementById("mesActual").textContent = `${meses[mes]} ${año}`;
+
+  const primerDia = new Date(año, mes, 1).getDay();
+  const ultimoDia = new Date(año, mes + 1, 0).getDate();
+
+  const grid = document.getElementById("cal-grid");
+  grid.innerHTML = "";
+
+  for (let i = 0; i < primerDia; i++) {
+    grid.appendChild(document.createElement("div"));
+  }
+
+  for (let dia = 1; dia <= ultimoDia; dia++) {
+    const celda = document.createElement("div");
+    celda.className = "cal-dia";
+    celda.textContent = dia;
+
+    const fechaStr = `${año}-${String(mes + 1).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
+
+    fetch(`${API}/admin/tareas-completas?fecha=${fechaStr}`)
+      .then(res => res.json())
+      .then(tareas => {
+        if (tareas.length > 0) {
+          celda.classList.add("con-tareas");
+
+          const estados = tareas.map(t => t.estado.toLowerCase());
+
+          if (estados.includes("aprobada")) celda.classList.add("aprobadas");
+          if (estados.includes("devuelto")) celda.classList.add("devuelta");
+        }
+      });
+
+    celda.onclick = () => {
+      document.getElementById("fechaSeleccionada").value = fechaStr;
+      verFecha();
     };
 
-    document.getElementById("nextMes").onclick = () => {
-      fechaActual.setMonth(fechaActual.getMonth() + 1);
-      renderCalendario();
-    };
+    grid.appendChild(celda);
+  }
+}
 
-    renderCalendario();
-  </script>
+document.getElementById("prevMes").onclick = () => {
+  fechaActual.setMonth(fechaActual.getMonth() - 1);
+  renderCalendario();
+};
 
-  <script>
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("service-worker.js");
-    }
-  </script>
+document.getElementById("nextMes").onclick = () => {
+  fechaActual.setMonth(fechaActual.getMonth() + 1);
+  renderCalendario();
+};
+
+renderCalendario();
+</script>
+
+<script>
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("service-worker.js");
+}
+</script>
 
 </body>
 </html>
