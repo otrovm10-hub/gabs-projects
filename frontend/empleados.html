@@ -155,15 +155,6 @@
     let fechaSeleccionada = null;
     let intervaloRefresco = null;
 
-    /* ---------------------------
-       SANEAR ID PARA INPUTS
-    ----------------------------*/
-    function limpiarID(texto) {
-      return texto
-        .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // quitar acentos
-        .replace(/[^a-zA-Z0-9]/g, "_"); // reemplazar espacios y caracteres raros
-    }
-
     function escapeHTML(str) {
       if (!str) return "";
       return str.replace(/[&<>"']/g, m => ({
@@ -317,7 +308,7 @@
     }
 
     /* ---------------------------
-       MOSTRAR TAREAS + FOTOS
+       MOSTRAR TAREAS
     ----------------------------*/
     function mostrarTareas(fecha, tareas) {
       document.getElementById("tituloDia").textContent = "Tareas del " + fecha;
@@ -339,9 +330,10 @@
       visibles.forEach(t => crearTarjeta(t, fecha));
     }
 
+    /* ---------------------------
+       CREAR TARJETA
+    ----------------------------*/
     function crearTarjeta(t, fecha) {
-      const id = limpiarID(t.tarea);
-
       const card = document.createElement("div");
       card.className = "tarea-card";
 
@@ -350,20 +342,22 @@
         t.estado === "devuelto" ? "🟠" :
         "⚪";
 
+      const idSeguro = btoa(t.tarea).replace(/=/g, "");
+
       card.innerHTML = `
         <strong>Tarea:</strong> ${escapeHTML(t.tarea)}<br>
         <p><strong>Estado:</strong> ${icono} ${escapeHTML(t.estado)}</p>
 
         <label class="foto-label">Foto ANTES:</label>
-        <input type="file" id="antes-${id}" accept="image/*" capture="environment">
+        <input type="file" id="antes-${idSeguro}" accept="image/*" capture="environment">
 
         <label class="foto-label">Foto DESPUÉS:</label>
-        <input type="file" id="despues-${id}" accept="image/*" capture="environment">
+        <input type="file" id="despues-${idSeguro}" accept="image/*" capture="environment">
 
         <label class="foto-label">Observación:</label>
-        <textarea id="obs-${id}" placeholder="Escriba una observación..."></textarea>
+        <textarea id="obs-${idSeguro}" placeholder="Escriba una observación..."></textarea>
 
-        <button class="btn-mini" onclick="enviarTarea('${t.tarea}', '${fecha}')">
+        <button class="btn-mini" onclick="enviarTarea('${t.tarea}', '${fecha}', '${idSeguro}')">
           Enviar fotos
         </button>
 
@@ -392,14 +386,12 @@
     }
 
     /* ---------------------------
-       SUBIR FOTOS
+       SUBIR FOTOS (CORREGIDO)
     ----------------------------*/
-    async function enviarTarea(tarea, fecha) {
-      const id = limpiarID(tarea);
-
-      const fotoAntes = document.getElementById(`antes-${id}`).files[0];
-      const fotoDespues = document.getElementById(`despues-${id}`).files[0];
-      const obsEmpleado = document.getElementById(`obs-${id}`).value;
+    async function enviarTarea(tarea, fecha, idSeguro) {
+      const fotoAntes = document.getElementById(`antes-${idSeguro}`).files[0];
+      const fotoDespues = document.getElementById(`despues-${idSeguro}`).files[0];
+      const obsEmpleado = document.getElementById(`obs-${idSeguro}`).value;
 
       if (!fotoAntes || !fotoDespues) {
         alert("Debe subir ambas fotos.");
