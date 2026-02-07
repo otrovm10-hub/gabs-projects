@@ -266,7 +266,11 @@ function agregarTarea() {
   fetch(`${API}/admin/agregar-tarea`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ id, fecha, tarea })
+    body: JSON.stringify({
+      empleado: id,   // ← CORREGIDO
+      fecha,
+      tarea
+    })
   }).then(() => verFecha());
 }
 
