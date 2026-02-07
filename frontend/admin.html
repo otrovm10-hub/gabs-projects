@@ -251,7 +251,7 @@ function cargarCatalogo() {
 }
 
 /* ---------------------------
-   AGREGAR TAREA
+   AGREGAR TAREA (CORREGIDO)
 ----------------------------*/
 function agregarTarea() {
   const id = document.getElementById("selectEmpleado").value;
@@ -266,11 +266,7 @@ function agregarTarea() {
   fetch(`${API}/admin/agregar-tarea`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      empleado: id,   // ← CORREGIDO
-      fecha,
-      tarea
-    })
+    body: JSON.stringify({ id, fecha, tarea })  // ← TU BACKEND USA "id"
   }).then(() => verFecha());
 }
 
