@@ -12,9 +12,9 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
-// ===============================
-//   CORS
-// ===============================
+/* ---------------------------------------------------
+   CORS — CORREGIDO PARA PERMITIR FORM-DATA
+--------------------------------------------------- */
 app.use(cors({
   origin: [
     "https://gabs-projects-frontend.vercel.app",
@@ -22,31 +22,34 @@ app.use(cors({
     "http://localhost:5173"
   ],
   methods: ["GET", "POST"],
-  allowedHeaders: ["Content-Type"]
+  allowedHeaders: ["Content-Type", "Authorization", "Accept", "Origin"],
+  credentials: true
 }));
 
-// ===============================
-//   BODY PARSERS (ESTO ES CLAVE)
-// ===============================
-app.use(bodyParser.json());
-app.use(express.urlencoded({ extended: true })); // <--- ESTA LÍNEA ES LA QUE FALTABA
+app.options("*", cors());
 
-// ===============================
-//   MULTER
-// ===============================
+/* ---------------------------------------------------
+   BODY PARSERS — ORDEN CORRECTO
+--------------------------------------------------- */
+app.use(bodyParser.json());
+app.use(express.urlencoded({ extended: true }));
+
+/* ---------------------------------------------------
+   MULTER — MEMORIA (REQUIRED FOR SUPABASE)
+--------------------------------------------------- */
 const upload = multer({ storage: multer.memoryStorage() });
 
-// ===============================
-//   SUPABASE
-// ===============================
+/* ---------------------------------------------------
+   SUPABASE
+--------------------------------------------------- */
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// ===============================
-//   RUTA: OBTENER EMPLEADOS
-// ===============================
+/* ---------------------------------------------------
+   RUTA: OBTENER EMPLEADOS
+--------------------------------------------------- */
 app.get("/empleados", (req, res) => {
   const filePath = path.join(__dirname, "data", "empleados.json");
 
@@ -63,9 +66,9 @@ app.get("/empleados", (req, res) => {
   }
 });
 
-// ===============================
-//   RUTA: LOGIN EMPLEADO
-// ===============================
+/* ---------------------------------------------------
+   LOGIN EMPLEADO
+--------------------------------------------------- */
 app.post("/login", (req, res) => {
   const { usuario, clave } = req.body;
 
@@ -87,13 +90,13 @@ app.post("/login", (req, res) => {
   });
 });
 
-// ===============================
-//   RUTA: AGREGAR TAREA (ADMIN)
-// ===============================
+/* ---------------------------------------------------
+   AGREGAR TAREA (ADMIN)
+--------------------------------------------------- */
 app.post("/admin/agregar-tarea", (req, res) => {
-  const { empleadoId, fecha, tarea } = req.body;
+  const { id, fecha, tarea } = req.body;
 
-  if (!empleadoId || !fecha || !tarea) {
+  if (!id || !fecha || !tarea) {
     return res.status(400).json({ error: "Faltan datos" });
   }
 
@@ -109,10 +112,10 @@ app.post("/admin/agregar-tarea", (req, res) => {
     }
   }
 
-  if (!excepciones[empleadoId]) excepciones[empleadoId] = {};
-  if (!excepciones[empleadoId][fecha]) excepciones[empleadoId][fecha] = [];
+  if (!excepciones[id]) excepciones[id] = {};
+  if (!excepciones[id][fecha]) excepciones[id][fecha] = [];
 
-  excepciones[empleadoId][fecha].push({
+  excepciones[id][fecha].push({
     id: Date.now().toString(),
     tarea,
     estado: "pendiente",
@@ -127,9 +130,9 @@ app.post("/admin/agregar-tarea", (req, res) => {
   res.json({ ok: true });
 });
 
-// ===========================================
-//   RUTA: OBTENER TAREAS DEL DÍA (EMPLEADO)
-// ===========================================
+/* ---------------------------------------------------
+   TAREAS DEL DÍA
+--------------------------------------------------- */
 app.get("/tareas-del-dia/:empleadoId", (req, res) => {
   const { empleadoId } = req.params;
   const { fecha } = req.query;
@@ -147,9 +150,9 @@ app.get("/tareas-del-dia/:empleadoId", (req, res) => {
   res.json({ tareas });
 });
 
-// ===========================================
-//   RUTA: GUARDAR ESTADO
-// ===========================================
+/* ---------------------------------------------------
+   GUARDAR ESTADO
+--------------------------------------------------- */
 app.post("/guardar-estado", (req, res) => {
   const { empleado, fecha, tarea, estado, motivoNoRealizada } = req.body;
 
@@ -169,9 +172,9 @@ app.post("/guardar-estado", (req, res) => {
   res.json({ ok: true });
 });
 
-// ===========================================
-//   RUTA: GUARDAR OBSERVACIÓN
-// ===========================================
+/* ---------------------------------------------------
+   GUARDAR OBSERVACIÓN EMPLEADO
+--------------------------------------------------- */
 app.post("/guardar-observacion", (req, res) => {
   const { empleado, fecha, tarea, observacion } = req.body;
 
@@ -190,9 +193,9 @@ app.post("/guardar-observacion", (req, res) => {
   res.json({ ok: true });
 });
 
-// ===========================================
-//   SUBIR FOTOS A SUPABASE
-// ===========================================
+/* ---------------------------------------------------
+   SUBIR FOTOS A SUPABASE (CORREGIDO)
+--------------------------------------------------- */
 app.post(
   "/empleado/subir-tarea",
   upload.fields([
@@ -257,8 +260,8 @@ app.post(
   }
 );
 
-// ===============================
-//   INICIAR SERVIDOR
-// ===============================
+/* ---------------------------------------------------
+   INICIAR SERVIDOR
+--------------------------------------------------- */
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Servidor corriendo en puerto ${PORT}`));
