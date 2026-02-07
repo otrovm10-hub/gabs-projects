@@ -127,7 +127,7 @@
     <input type="text" id="usuario" placeholder="Usuario">
     <input type="password" id="clave" placeholder="Clave">
 
-    <!-- BOTÓN CORREGIDO -->
+    <!-- BOTÓN -->
     <button type="button" onclick="login()">Entrar</button>
   </div>
 
@@ -161,8 +161,17 @@
     const SUPABASE_ANON_KEY = "sb_publishable_bkr2CZPPeb7opdgSAxeA7A_kD_YsNjO";
     const SUPABASE_BUCKET = "fotos";
 
-    /* ✔ CORRECTO Y ÚNICO */
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    // Cliente Supabase a prueba de fallos
+    let supabaseClient = null;
+    try {
+      if (window.supabase && typeof window.supabase.createClient === "function") {
+        supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      } else {
+        console.warn("Supabase no está disponible en window.supabase");
+      }
+    } catch (e) {
+      console.error("Error inicializando Supabase:", e);
+    }
 
     /* ---------------------------
        VARIABLES
@@ -221,6 +230,10 @@
           "Bienvenido a tu panel de tareas.";
 
         cargarCalendario();
+      })
+      .catch(err => {
+        console.error("Error en login:", err);
+        alert("Error al conectar con el servidor.");
       });
     }
 
@@ -285,7 +298,8 @@
             }).join("");
 
             div.innerHTML = `${tareas.length} tareas<br>${colores}`;
-          });
+          })
+          .catch(err => console.error("Error cargando resumen:", err));
       }
     }
 
@@ -323,7 +337,8 @@
 
       fetch(`${API}/tareas-del-dia/${empleadoID}?fecha=${fechaSeleccionada}`)
         .then(res => res.json())
-        .then(data => mostrarTareas(fechaSeleccionada, data.tareas || []));
+        .then(data => mostrarTareas(fechaSeleccionada, data.tareas || []))
+        .catch(err => console.error("Error cargando tareas del día:", err));
     }
 
     /* ---------------------------
@@ -408,6 +423,11 @@
        SUBIDA DIRECTA A SUPABASE
     ----------------------------*/
     async function enviarTarea(tarea, fecha, idSeguro) {
+      if (!supabaseClient) {
+        alert("No se pudo inicializar el módulo de fotos (Supabase).");
+        return;
+      }
+
       const fotoAntes = document.getElementById(`antes-${idSeguro}`).files[0];
       const fotoDespues = document.getElementById(`despues-${idSeguro}`).files[0];
       const obsEmpleado = document.getElementById(`obs-${idSeguro}`).value;
@@ -420,27 +440,32 @@
       const pathAntes = `empleados/${empleadoID}/${fecha}/${tarea}-antes-${Date.now()}.jpg`;
       const pathDespues = `empleados/${empleadoID}/${fecha}/${tarea}-despues-${Date.now()}.jpg`;
 
-      await supabase.storage.from(SUPABASE_BUCKET).upload(pathAntes, fotoAntes);
-      await supabase.storage.from(SUPABASE_BUCKET).upload(pathDespues, fotoDespues);
+      try {
+        await supabaseClient.storage.from(SUPABASE_BUCKET).upload(pathAntes, fotoAntes);
+        await supabaseClient.storage.from(SUPABASE_BUCKET).upload(pathDespues, fotoDespues);
 
-      const urlAntes = supabase.storage.from(SUPABASE_BUCKET).getPublicUrl(pathAntes).data.publicUrl;
-      const urlDespues = supabase.storage.from(SUPABASE_BUCKET).getPublicUrl(pathDespues).data.publicUrl;
+        const urlAntes = supabaseClient.storage.from(SUPABASE_BUCKET).getPublicUrl(pathAntes).data.publicUrl;
+        const urlDespues = supabaseClient.storage.from(SUPABASE_BUCKET).getPublicUrl(pathDespues).data.publicUrl;
 
-      await fetch(`${API}/empleado/subida-directa`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          empleadoId: empleadoID,
-          fecha,
-          tarea,
-          fotoAntes: urlAntes,
-          fotoDespues: urlDespues,
-          obsEmpleado
-        })
-      });
+        await fetch(`${API}/empleado/subida-directa`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            empleadoId: empleadoID,
+            fecha,
+            tarea,
+            fotoAntes: urlAntes,
+            fotoDespues: urlDespues,
+            obsEmpleado
+          })
+        });
 
-      alert("Tarea enviada correctamente.");
-      cargarTareasDelDia();
+        alert("Tarea enviada correctamente.");
+        cargarTareasDelDia();
+      } catch (e) {
+        console.error("Error subiendo fotos:", e);
+        alert("Error al subir las fotos.");
+      }
     }
 
     /* ---------------------------
@@ -457,7 +482,8 @@
           estado
         })
       })
-      .then(() => cargarTareasDelDia());
+      .then(() => cargarTareasDelDia())
+      .catch(err => console.error("Error cambiando estado:", err));
     }
 
     function marcarNoRealizada(tarea, fecha) {
@@ -475,7 +501,8 @@
           motivoNoRealizada: motivo
         })
       })
-      .then(() => cargarTareasDelDia());
+      .then(() => cargarTareasDelDia())
+      .catch(err => console.error("Error marcando no realizada:", err));
     }
 
     function agregarObservacion(tarea, fecha) {
@@ -492,7 +519,8 @@
           observacion: obs
         })
       })
-      .then(() => cargarTareasDelDia());
+      .then(() => cargarTareasDelDia())
+      .catch(err => console.error("Error guardando observación:", err));
     }
   </script>
 
