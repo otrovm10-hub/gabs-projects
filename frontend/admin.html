@@ -276,7 +276,7 @@
     }
 
     /* ---------------------------
-       MOSTRAR TAREAS
+       MOSTRAR TAREAS (CORREGIDO)
     ----------------------------*/
     function mostrarTareas(fecha, tareas) {
       const cont = document.getElementById("listaTareas");
@@ -294,11 +294,21 @@
         card.innerHTML = `
           <strong>Empleado:</strong> ${escapeHTML(t.nombre)}<br>
           <strong>Tarea:</strong> ${escapeHTML(t.tarea)}<br>
-          <strong>Estado:</strong> ${escapeHTML(t.estado)}<br>
-          ${t.obsEmpleado ? `<strong>Obs empleado:</strong> ${escapeHTML(t.obsEmpleado)}<br>` : ""}
-          ${t.obsAdmin ? `<strong>Obs admin:</strong> ${escapeHTML(t.obsAdmin)}<br>` : ""}
-          ${t.motivoNoRealizada ? `<strong>Motivo:</strong> ${escapeHTML(t.motivoNoRealizada)}<br>` : ""}
-          <br>
+          <strong>Estado:</strong> ${escapeHTML(t.estado)}<br><br>
+
+          ${t.fotoAntes ? `
+            <p><strong>Foto ANTES:</strong><br>
+            <img src="${t.fotoAntes}" style="width:150px;border-radius:8px;margin-top:5px;"></p>
+          ` : "<p><em>Sin foto ANTES</em></p>"}
+
+          ${t.fotoDespues ? `
+            <p><strong>Foto DESPUÉS:</strong><br>
+            <img src="${t.fotoDespues}" style="width:150px;border-radius:8px;margin-top:5px;"></p>
+          ` : "<p><em>Sin foto DESPUÉS</em></p>"}
+
+          ${t.obsEmpleado ? `<p><strong>Obs empleado:</strong> ${escapeHTML(t.obsEmpleado)}</p>` : ""}
+          ${t.obsAdmin ? `<p><strong>Obs admin:</strong> ${escapeHTML(t.obsAdmin)}</p>` : ""}
+          ${t.motivoNoRealizada ? `<p><strong>Motivo:</strong> ${escapeHTML(t.motivoNoRealizada)}</p>` : ""}
 
           <button class="btn-mini" onclick="aprobar('${t.id}', '${fecha}', '${t.tarea}')">Aprobar</button>
           <button class="btn-mini" onclick="devolver('${t.id}', '${fecha}', '${t.tarea}')">Devolver</button>
@@ -308,24 +318,6 @@
 
         cont.appendChild(card);
       });
-    }
-
-    /* ---------------------------
-       AGREGAR TAREA
-    ----------------------------*/
-    function agregarTarea() {
-      const id = document.getElementById("selectEmpleado").value;
-      const tarea = document.getElementById("selectTarea").value;
-      const fecha = document.getElementById("fechaSeleccionada").value;
-
-      if (!id || !tarea || !fecha) return;
-
-      fetch(`${API}/admin/agregar-tarea`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, fecha, tarea })
-      })
-      .then(() => verFecha());
     }
 
     /* ---------------------------
