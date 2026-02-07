@@ -258,15 +258,25 @@ function agregarTarea() {
   const fecha = document.getElementById("fechaSeleccionada").value;
   const tarea = document.getElementById("selectTarea").value;
 
-  if (!id || !fecha || !tarea) {
-    alert("Faltan datos");
+  if (!fecha) {
+    alert("Seleccione una fecha antes de agregar tareas");
+    return;
+  }
+
+  if (!id) {
+    alert("Seleccione un empleado");
+    return;
+  }
+
+  if (!tarea) {
+    alert("Seleccione una tarea");
     return;
   }
 
   fetch(`${API}/admin/agregar-tarea`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ id, fecha, tarea })  // ← TU BACKEND USA "id"
+    body: JSON.stringify({ id, fecha, tarea })
   }).then(() => verFecha());
 }
 
