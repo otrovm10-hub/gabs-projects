@@ -251,33 +251,39 @@ function cargarCatalogo() {
 }
 
 /* ---------------------------
-   AGREGAR TAREA (CORREGIDO)
+   AGREGAR TAREA (MEJORADO)
 ----------------------------*/
 function agregarTarea() {
   const id = document.getElementById("selectEmpleado").value;
   const fecha = document.getElementById("fechaSeleccionada").value;
   const tarea = document.getElementById("selectTarea").value;
 
-  if (!fecha) {
-    alert("Seleccione una fecha antes de agregar tareas");
-    return;
-  }
+  console.log("📌 ENVIANDO:", { id, fecha, tarea });
 
-  if (!id) {
-    alert("Seleccione un empleado");
-    return;
-  }
-
-  if (!tarea) {
-    alert("Seleccione una tarea");
-    return;
-  }
+  if (!fecha) return alert("Seleccione una fecha");
+  if (!id) return alert("Seleccione un empleado");
+  if (!tarea) return alert("Seleccione una tarea");
 
   fetch(`${API}/admin/agregar-tarea`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ id, fecha, tarea })
-  }).then(() => verFecha());
+  })
+    .then(async res => {
+      const body = await res.json().catch(() => null);
+      console.log("📌 RESPUESTA:", res.status, body);
+
+      if (!res.ok) {
+        alert("Error al guardar: " + JSON.stringify(body));
+        return;
+      }
+
+      verFecha();
+    })
+    .catch(err => {
+      console.error("❌ ERROR FETCH:", err);
+      alert("Error de red");
+    });
 }
 
 /* ---------------------------
@@ -315,15 +321,8 @@ function mostrarTareas(fecha, tareas) {
       <strong>Tarea:</strong> ${escapeHTML(t.tarea)}<br>
       <strong>Estado:</strong> ${escapeHTML(t.estado)}<br><br>
 
-      ${t.fotoAntes ? `
-        <p><strong>Foto ANTES:</strong><br>
-        <img src="${t.fotoAntes}"></p>
-      ` : "<p><em>Sin foto ANTES</em></p>"}
-
-      ${t.fotoDespues ? `
-        <p><strong>Foto DESPUÉS:</strong><br>
-        <img src="${t.fotoDespues}"></p>
-      ` : "<p><em>Sin foto DESPUÉS</em></p>"}
+      ${t.fotoAntes ? `<p><strong>Foto ANTES:</strong><br><img src="${t.fotoAntes}"></p>` : "<p><em>Sin foto ANTES</em></p>"}
+      ${t.fotoDespues ? `<p><strong>Foto DESPUÉS:</strong><br><img src="${t.fotoDespues}"></p>` : "<p><em>Sin foto DESPUÉS</em></p>"}
 
       ${t.obsEmpleado ? `<p><strong>Obs empleado:</strong> ${escapeHTML(t.obsEmpleado)}</p>` : ""}
       ${t.obsAdmin ? `<p><strong>Obs admin:</strong> ${escapeHTML(t.obsAdmin)}</p>` : ""}
@@ -348,8 +347,7 @@ function aprobar(id, fecha, tarea) {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ id, fecha, tarea, observacionAdmin })
-  })
-  .then(() => verFecha());
+  }).then(() => verFecha());
 }
 
 /* ---------------------------
@@ -361,8 +359,7 @@ function devolver(id, fecha, tarea) {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ id, fecha, tarea, motivo })
-  })
-  .then(() => verFecha());
+  }).then(() => verFecha());
 }
 
 /* ---------------------------
@@ -384,8 +381,7 @@ function reprogramar(id, fecha, tarea) {
       nuevaFecha,
       observacionAdmin
     })
-  })
-  .then(() => verFecha());
+  }).then(() => verFecha());
 }
 
 /* ---------------------------
@@ -399,8 +395,7 @@ function obsAdmin(id, fecha, tarea) {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ id, fecha, tarea, observacionAdmin })
-  })
-  .then(() => verFecha());
+  }).then(() => verFecha());
 }
 
 /* ---------------------------
