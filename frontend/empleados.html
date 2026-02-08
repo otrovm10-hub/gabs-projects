@@ -127,7 +127,6 @@
     <input type="text" id="usuario" placeholder="Usuario">
     <input type="password" id="clave" placeholder="Clave">
 
-    <!-- BOTÓN -->
     <button type="button" onclick="login()">Entrar</button>
   </div>
 
@@ -161,13 +160,10 @@
     const SUPABASE_ANON_KEY = "sb_publishable_bkr2CZPPeb7opdgSAxeA7A_kD_YsNjO";
     const SUPABASE_BUCKET = "fotos";
 
-    // Cliente Supabase a prueba de fallos
     let supabaseClient = null;
     try {
       if (window.supabase && typeof window.supabase.createClient === "function") {
         supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-      } else {
-        console.warn("Supabase no está disponible en window.supabase");
       }
     } catch (e) {
       console.error("Error inicializando Supabase:", e);
@@ -376,17 +372,17 @@
         t.estado === "devuelto" ? "🟠" :
         "⚪";
 
-      const idSeguro = btoa(t.tarea).replace(/=/g, "");
+      const idSeguro = crypto.randomUUID();
 
       card.innerHTML = `
         <strong>Tarea:</strong> ${escapeHTML(t.tarea)}<br>
         <p><strong>Estado:</strong> ${icono} ${escapeHTML(t.estado)}</p>
 
         <label class="foto-label">Foto ANTES:</label>
-        <input type="file" id="antes-${idSeguro}" accept="image/*" capture="environment">
+        <input type="file" id="antes-${idSeguro}" accept="image/*" multiple="false">
 
         <label class="foto-label">Foto DESPUÉS:</label>
-        <input type="file" id="despues-${idSeguro}" accept="image/*" capture="environment">
+        <input type="file" id="despues-${idSeguro}" accept="image/*" multiple="false">
 
         <label class="foto-label">Observación:</label>
         <textarea id="obs-${idSeguro}" placeholder="Escriba una observación..."></textarea>
@@ -431,6 +427,9 @@
       const fotoAntes = document.getElementById(`antes-${idSeguro}`).files[0];
       const fotoDespues = document.getElementById(`despues-${idSeguro}`).files[0];
       const obsEmpleado = document.getElementById(`obs-${idSeguro}`).value;
+
+      console.log("ANTES:", fotoAntes);
+      console.log("DESPUES:", fotoDespues);
 
       if (!fotoAntes || !fotoDespues) {
         alert("Debe subir ambas fotos.");
